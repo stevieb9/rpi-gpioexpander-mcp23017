@@ -8,14 +8,14 @@ our $VERSION = '0.01';
 require XSLoader;
 XSLoader::load('RPi::GPIOExpander::MCP23017', $VERSION);
 
-sub reg_bit {
+sub register_bit {
     my ($self, $reg, $bit) = @_;
 
     my $regval = getRegisterBit($self->_fd, $reg, $bit);
     return $regval;
 }
 
-sub reg {
+sub register {
     my ($self, $reg, $data) = @_;
 
     if (defined $data){
@@ -47,6 +47,7 @@ sub _fd {
     $self->{fd} = $fd if defined $fd;
     return $self->{fd};
 }
+
 1;
 __END__
 

@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "mcp23017.h"
 #include "bit.h"
 
 #define OUTPUT              0x00
@@ -41,71 +42,9 @@
 #define MCP23017_OUTPUT     0x00
 #define MCP23017_INPUT      0x01
 
+/* setup functions */
 
-void checkRegisterReadOnly(uint8_t reg);
-int getFd (int expanderAddr);
-int getRegister (int fd, int reg);
-int setRegister (int fd, int reg, int value, char* name);
-
-int getRegisterBit (int fd, int reg, int bit);
-
-void _establishI2C (int fd);
-void _close (int fd);
-
-int _pinBit (int pin){
-    if (pin < 0 || pin > 15){
-        croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
-    }
-
-    // since we're dealing with a register per bank,
-    // We need to know where in the double register to
-    // look
-
-    return pin < 8 ? pin : pin - 8;
-}
-
-bool readPin (int fd, int pin){
-    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
-
-    return getRegisterBit(fd, reg, bit);
-}
-
-void writePin (int fd, int pin, bool state){
-    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
-    int value;
-
-    if (state == HIGH){
-//        setRegisterBit
-        value = bitOn(getRegister(fd, reg), bit);
-
-    }
-    else {
-        value = bitOff(getRegister(fd, reg), bit);
-    }
-
-    setRegister(fd, reg, value, "writePin()");
-}
-
-void pinMode (int fd, int pin, int mode){
-    int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
-    int bit = _pinBit(pin);
-    int value;
-
-    if (mode == INPUT){
-        value = bitOn(getRegister(fd, reg), bit);
-
-    }
-    else {
-        value = bitOff(getRegister(fd, reg), bit);
-    }
-
-    printf("val: %d\n", value);
-    setRegister(fd, reg, value, "pinMode()");
-}
-
-int getFd (int expanderAddr){
+int GPIO_getFd (int expanderAddr){
 
     int fd;
 
@@ -141,11 +80,20 @@ void _establishI2C (int fd){
     }
 }
 
-void _close (int fd){
-    close(fd);
+/* register operations */
+
+void _checkRegisterReadOnly (uint8_t reg){
+    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+
+    for (int i=0; i < sizeof(readOnlyRegisters); i++){
+        if (reg == readOnlyRegisters[i]){
+            warn("error: register 0x%x is read-only\n", reg);
+            croak("Attempt to write to read-only register failed\n");
+        }
+    }
 }
 
-int getRegister (int fd, int reg){
+int GPIO_getRegister (int fd, int reg){
 
     uint8_t buf[1];
     buf[0] = reg;
@@ -167,18 +115,18 @@ int getRegister (int fd, int reg){
     return buf[0];
 }
 
-int getRegisterBit (int fd, int reg, int bit){
-    int regData = getRegister(fd, (int) reg);
+int GPIO_getRegisterBit (int fd, int reg, int bit){
+    int regData = GPIO_getRegister(fd, (int) reg);
 
-    return (int) bitGet((unsigned int) regData, bit, bit);
+    return bitGet(regData, bit, bit);
 }
 
-int getRegisterBits (int fd, int reg, int msb, int lsb){
-    return (int) bitGet((unsigned int) getRegister(fd, (int) reg), msb, lsb);
+int GPIO_getRegisterBits (int fd, int reg, int msb, int lsb){
+    return bitGet(GPIO_getRegister(fd, reg), msb, lsb);
 }
 
-int setRegister(int fd, int reg, int value, char* name){
-    checkRegisterReadOnly(reg);
+int GPIO_setRegister(int fd, int reg, int value, char* name){
+    _checkRegisterReadOnly(reg);
 
     uint8_t buf[2] = {reg, value};
 
@@ -187,8 +135,7 @@ int setRegister(int fd, int reg, int value, char* name){
         printf(
                 "Could not write to the %s register: %s\n",
                 name,
-                //strerror(errno)
-                "test"
+                strerror(errno)
         );
         exit(-1);
     }
@@ -196,18 +143,65 @@ int setRegister(int fd, int reg, int value, char* name){
     return 0;
 }
 
-void checkRegisterReadOnly (uint8_t reg){
-    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
 
-    for (int i=0; i < sizeof(readOnlyRegisters); i++){
-        if (reg == readOnlyRegisters[i]){
-            warn("error: register 0x%x is read-only\n", reg);
-            croak("Attempt to write to read-only register failed\n");
-        }
+
+/* pin functions */
+
+int _pinBit (int pin){
+    if (pin < 0 || pin > 15){
+        croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
     }
+
+    // since we're dealing with a register per bank,
+    // We need to know where in the double register to
+    // look
+
+    return pin < 8 ? pin : pin - 8;
 }
 
-void cleanup (int fd){
+bool GPIO_readPin (int fd, int pin){
+    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    int bit = _pinBit(pin);
+
+    return (bool) GPIO_getRegisterBit(fd, reg, bit);
+}
+
+void GPIO_writePin (int fd, int pin, bool state){
+    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    int bit = _pinBit(pin);
+    int value;
+
+    if (state == HIGH){
+//        setRegisterBit
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
+
+    GPIO_setRegister(fd, reg, value, "writePin()");
+}
+
+void GPIO_pinMode (int fd, int pin, int mode){
+    int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
+    int bit = _pinBit(pin);
+    int value;
+
+    if (mode == INPUT){
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
+
+    GPIO_setRegister(fd, reg, value, "pinMode()");
+}
+
+/* operational functions */
+
+void GPIO_cleanup (int fd){
 
     for (int i = 0; i < 0x16; i++){
         if (i == MCP23017_IOCON_A || i == MCP23017_IOCON_B){
@@ -216,14 +210,14 @@ void cleanup (int fd){
         }
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
-            setRegister(fd, (int) i, (int) 0xFF, "IODIR");
+            GPIO_setRegister(fd, (int) i, (int) 0xFF, "IODIR");
             continue;
         }
-        setRegister(fd, i, 0x00, "rest");
+        GPIO_setRegister(fd, i, 0x00, "rest");
     }
 }
 
-#line 227 "MCP23017.c"
+#line 221 "MCP23017.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -367,7 +361,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 371 "MCP23017.c"
+#line 365 "MCP23017.c"
 
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd)
@@ -381,68 +375,10 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = getFd(expanderAddr);
+	RETVAL = GPIO_getFd(expanderAddr);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
-}
-
-
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__establishI2C); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__establishI2C)
-{
-    dVAR; dXSARGS;
-    if (items != 1)
-       croak_xs_usage(cv,  "fd");
-    PERL_UNUSED_VAR(ax); /* -Wall */
-    SP -= items;
-    {
-	int	fd = (int)SvIV(ST(0))
-;
-#line 230 "MCP23017.xs"
-        I32* temp;
-#line 405 "MCP23017.c"
-#line 232 "MCP23017.xs"
-        temp = PL_markstack_ptr++;
-        _establishI2C(fd);
-        if (PL_markstack_ptr != temp) {
-          PL_markstack_ptr = temp;
-          XSRETURN_EMPTY;
-        }
-        return;
-#line 414 "MCP23017.c"
-	PUTBACK;
-	return;
-    }
-}
-
-
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__close); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__close)
-{
-    dVAR; dXSARGS;
-    if (items != 1)
-       croak_xs_usage(cv,  "fd");
-    PERL_UNUSED_VAR(ax); /* -Wall */
-    SP -= items;
-    {
-	int	fd = (int)SvIV(ST(0))
-;
-#line 244 "MCP23017.xs"
-        I32* temp;
-#line 434 "MCP23017.c"
-#line 246 "MCP23017.xs"
-        temp = PL_markstack_ptr++;
-        _close(fd);
-        if (PL_markstack_ptr != temp) {
-          PL_markstack_ptr = temp;
-          XSRETURN_EMPTY;
-        }
-        return;
-#line 443 "MCP23017.c"
-	PUTBACK;
-	return;
-    }
 }
 
 
@@ -460,7 +396,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getRegister)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = getRegister(fd, reg);
+	RETVAL = GPIO_getRegister(fd, reg);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -483,7 +419,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getRegisterBit)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = getRegisterBit(fd, reg, bit);
+	RETVAL = GPIO_getRegisterBit(fd, reg, bit);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -508,7 +444,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getRegisterBits)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = getRegisterBits(fd, reg, msb, lsb);
+	RETVAL = GPIO_getRegisterBits(fd, reg, msb, lsb);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -533,7 +469,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_setRegister)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = setRegister(fd, reg, value, name);
+	RETVAL = GPIO_setRegister(fd, reg, value, name);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -554,7 +490,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_readPin)
 	int	RETVAL;
 	dXSTARG;
 
-	RETVAL = readPin(fd, pin);
+	RETVAL = GPIO_readPin(fd, pin);
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -575,7 +511,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_writePin)
 	int	state = (int)SvIV(ST(2))
 ;
 
-	writePin(fd, pin, state);
+	GPIO_writePin(fd, pin, state);
     }
     XSRETURN_EMPTY;
 }
@@ -595,7 +531,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_pinMode)
 	int	mode = (int)SvIV(ST(2))
 ;
 
-	pinMode(fd, pin, mode);
+	GPIO_pinMode(fd, pin, mode);
     }
     XSRETURN_EMPTY;
 }
@@ -612,18 +548,18 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_cleanup)
     {
 	int	fd = (int)SvIV(ST(0))
 ;
-#line 297 "MCP23017.xs"
+#line 273 "MCP23017.xs"
         I32* temp;
-#line 618 "MCP23017.c"
-#line 299 "MCP23017.xs"
+#line 554 "MCP23017.c"
+#line 275 "MCP23017.xs"
         temp = PL_markstack_ptr++;
-        cleanup(fd);
+        GPIO_cleanup(fd);
         if (PL_markstack_ptr != temp) {
           PL_markstack_ptr = temp;
           XSRETURN_EMPTY;
         }
         return;
-#line 627 "MCP23017.c"
+#line 563 "MCP23017.c"
 	PUTBACK;
 	return;
     }
@@ -658,8 +594,6 @@ XS_EXTERNAL(boot_RPi__GPIOExpander__MCP23017)
 #endif
 
         newXS_deffile("RPi::GPIOExpander::MCP23017::getFd", XS_RPi__GPIOExpander__MCP23017_getFd);
-        newXS_deffile("RPi::GPIOExpander::MCP23017::_establishI2C", XS_RPi__GPIOExpander__MCP23017__establishI2C);
-        newXS_deffile("RPi::GPIOExpander::MCP23017::_close", XS_RPi__GPIOExpander__MCP23017__close);
         newXS_deffile("RPi::GPIOExpander::MCP23017::getRegister", XS_RPi__GPIOExpander__MCP23017_getRegister);
         newXS_deffile("RPi::GPIOExpander::MCP23017::getRegisterBit", XS_RPi__GPIOExpander__MCP23017_getRegisterBit);
         newXS_deffile("RPi::GPIOExpander::MCP23017::getRegisterBits", XS_RPi__GPIOExpander__MCP23017_getRegisterBits);

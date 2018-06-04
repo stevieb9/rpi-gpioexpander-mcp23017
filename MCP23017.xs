@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "mcp23017.h"
 #include "bit.h"
 
 #define OUTPUT              0x00
@@ -32,71 +33,9 @@
 #define MCP23017_OUTPUT     0x00
 #define MCP23017_INPUT      0x01
 
+/* setup functions */
 
-void checkRegisterReadOnly(uint8_t reg);
-int getFd (int expanderAddr);
-int getRegister (int fd, int reg);
-int setRegister (int fd, int reg, int value, char* name);
-
-int getRegisterBit (int fd, int reg, int bit);
-
-void _establishI2C (int fd);
-void _close (int fd);
-
-int _pinBit (int pin){
-    if (pin < 0 || pin > 15){
-        croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
-    }
-
-    // since we're dealing with a register per bank,
-    // We need to know where in the double register to
-    // look
-
-    return pin < 8 ? pin : pin - 8;
-}
-
-bool readPin (int fd, int pin){
-    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
-
-    return getRegisterBit(fd, reg, bit);
-}
-
-void writePin (int fd, int pin, bool state){
-    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
-    int value;
-
-    if (state == HIGH){
-//        setRegisterBit
-        value = bitOn(getRegister(fd, reg), bit);
-
-    }
-    else {
-        value = bitOff(getRegister(fd, reg), bit);
-    }
-
-    setRegister(fd, reg, value, "writePin()");
-}
-
-void pinMode (int fd, int pin, int mode){
-    int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
-    int bit = _pinBit(pin);
-    int value;
-
-    if (mode == INPUT){
-        value = bitOn(getRegister(fd, reg), bit);
-
-    }
-    else {
-        value = bitOff(getRegister(fd, reg), bit);
-    }
-
-    printf("val: %d\n", value);
-    setRegister(fd, reg, value, "pinMode()");
-}
-
-int getFd (int expanderAddr){
+int GPIO_getFd (int expanderAddr){
 
     int fd;
 
@@ -132,11 +71,20 @@ void _establishI2C (int fd){
     }
 }
 
-void _close (int fd){
-    close(fd);
+/* register operations */
+
+void _checkRegisterReadOnly (uint8_t reg){
+    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+
+    for (int i=0; i < sizeof(readOnlyRegisters); i++){
+        if (reg == readOnlyRegisters[i]){
+            warn("error: register 0x%x is read-only\n", reg);
+            croak("Attempt to write to read-only register failed\n");
+        }
+    }
 }
 
-int getRegister (int fd, int reg){
+int GPIO_getRegister (int fd, int reg){
 
     uint8_t buf[1];
     buf[0] = reg;
@@ -158,18 +106,18 @@ int getRegister (int fd, int reg){
     return buf[0];
 }
 
-int getRegisterBit (int fd, int reg, int bit){
-    int regData = getRegister(fd, (int) reg);
+int GPIO_getRegisterBit (int fd, int reg, int bit){
+    int regData = GPIO_getRegister(fd, (int) reg);
 
-    return (int) bitGet((unsigned int) regData, bit, bit);
+    return bitGet(regData, bit, bit);
 }
 
-int getRegisterBits (int fd, int reg, int msb, int lsb){
-    return (int) bitGet((unsigned int) getRegister(fd, (int) reg), msb, lsb);
+int GPIO_getRegisterBits (int fd, int reg, int msb, int lsb){
+    return bitGet(GPIO_getRegister(fd, reg), msb, lsb);
 }
 
-int setRegister(int fd, int reg, int value, char* name){
-    checkRegisterReadOnly(reg);
+int GPIO_setRegister(int fd, int reg, int value, char* name){
+    _checkRegisterReadOnly(reg);
 
     uint8_t buf[2] = {reg, value};
 
@@ -178,8 +126,7 @@ int setRegister(int fd, int reg, int value, char* name){
         printf(
                 "Could not write to the %s register: %s\n",
                 name,
-                //strerror(errno)
-                "test"
+                strerror(errno)
         );
         exit(-1);
     }
@@ -187,18 +134,65 @@ int setRegister(int fd, int reg, int value, char* name){
     return 0;
 }
 
-void checkRegisterReadOnly (uint8_t reg){
-    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
 
-    for (int i=0; i < sizeof(readOnlyRegisters); i++){
-        if (reg == readOnlyRegisters[i]){
-            warn("error: register 0x%x is read-only\n", reg);
-            croak("Attempt to write to read-only register failed\n");
-        }
+
+/* pin functions */
+
+int _pinBit (int pin){
+    if (pin < 0 || pin > 15){
+        croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
     }
+
+    // since we're dealing with a register per bank,
+    // We need to know where in the double register to
+    // look
+
+    return pin < 8 ? pin : pin - 8;
 }
 
-void cleanup (int fd){
+bool GPIO_readPin (int fd, int pin){
+    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    int bit = _pinBit(pin);
+
+    return (bool) GPIO_getRegisterBit(fd, reg, bit);
+}
+
+void GPIO_writePin (int fd, int pin, bool state){
+    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    int bit = _pinBit(pin);
+    int value;
+
+    if (state == HIGH){
+//        setRegisterBit
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
+
+    GPIO_setRegister(fd, reg, value, "writePin()");
+}
+
+void GPIO_pinMode (int fd, int pin, int mode){
+    int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
+    int bit = _pinBit(pin);
+    int value;
+
+    if (mode == INPUT){
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
+
+    GPIO_setRegister(fd, reg, value, "pinMode()");
+}
+
+/* operational functions */
+
+void GPIO_cleanup (int fd){
 
     for (int i = 0; i < 0x16; i++){
         if (i == MCP23017_IOCON_A || i == MCP23017_IOCON_B){
@@ -207,100 +201,81 @@ void cleanup (int fd){
         }
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
-            setRegister(fd, (int) i, (int) 0xFF, "IODIR");
+            GPIO_setRegister(fd, (int) i, (int) 0xFF, "IODIR");
             continue;
         }
-        setRegister(fd, i, 0x00, "rest");
+        GPIO_setRegister(fd, i, 0x00, "rest");
     }
 }
 
-MODULE = RPi::GPIOExpander::MCP23017  PACKAGE = RPi::GPIOExpander::MCP23017
+MODULE = RPi::GPIOExpander::MCP23017  PACKAGE = RPi::GPIOExpander::MCP23017 PREFIX = GPIO_
 
 PROTOTYPES: DISABLE
 
+# setup functions
 
 int
-getFd (expanderAddr)
+GPIO_getFd (expanderAddr)
 	int	expanderAddr
 
-void
-_establishI2C (fd)
-	int	fd
-        PREINIT:
-        I32* temp;
-        PPCODE:
-        temp = PL_markstack_ptr++;
-        _establishI2C(fd);
-        if (PL_markstack_ptr != temp) {
-          PL_markstack_ptr = temp;
-          XSRETURN_EMPTY;
-        }
-        return;
-
-void
-_close (fd)
-	int	fd
-        PREINIT:
-        I32* temp;
-        PPCODE:
-        temp = PL_markstack_ptr++;
-        _close(fd);
-        if (PL_markstack_ptr != temp) {
-          PL_markstack_ptr = temp;
-          XSRETURN_EMPTY;
-        }
-        return;
+# register functions
 
 int
-getRegister (fd, reg)
+GPIO_getRegister (fd, reg)
 	int	fd
 	int	reg
 
 int
-getRegisterBit (fd, reg, bit)
+GPIO_getRegisterBit (fd, reg, bit)
 	int	fd
 	int	reg
 	int	bit
 
 int
-getRegisterBits (fd, reg, msb, lsb)
+GPIO_getRegisterBits (fd, reg, msb, lsb)
 	int	fd
 	int	reg
 	int	msb
 	int	lsb
 
 int
-setRegister (fd, reg, value, name)
+GPIO_setRegister (fd, reg, value, name)
 	int	fd
 	int	reg
 	int	value
 	char* name
 
-int readPin (fd, pin)
+# pin functions
+
+int
+GPIO_readPin (fd, pin)
     int fd
     int pin
 
-void writePin (fd, pin, state)
+void
+GPIO_writePin (fd, pin, state)
     int fd
     int pin
     int state
 
-void pinMode (fd, pin, mode)
+void
+GPIO_pinMode (fd, pin, mode)
     int fd
     int pin
     int mode
 
+# operational functions
+
 void
-cleanup (fd)
+GPIO_cleanup (fd)
 	int	fd
         PREINIT:
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        cleanup(fd);
+        GPIO_cleanup(fd);
         if (PL_markstack_ptr != temp) {
           PL_markstack_ptr = temp;
           XSRETURN_EMPTY;
         }
         return;
-

@@ -13,7 +13,7 @@ my $o = $mod->new(0x20);
 
 for my $reg (0x00..0x09, 0x0C..0x0D, 0x14..0x15){
     for my $data (0..255){
-        my $ret = $o->reg($reg, $data);
+        my $ret = $o->register($reg, $data);
         is $ret, $data, "register $reg set to $data ok";
     }
 }
@@ -24,7 +24,7 @@ for my $reg (0x00..0x09, 0x0C..0x0D, 0x14..0x15){
 
     for my $reg (0x0A .. 0x0B, 0x0E .. 0x11) {
         is eval {
-                $o->reg($reg, 0xFF);
+                $o->register($reg, 0xFF);
                 1;
             }, undef, "writing to reg $reg croaks ok";
     }
