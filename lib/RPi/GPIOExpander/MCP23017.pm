@@ -5,6 +5,7 @@ use warnings;
 
 use Carp qw(croak);
 use RPi::Const qw(:all);
+use RPi::Const qw(:all);
 
 our $VERSION = '0.01';
 
@@ -34,8 +35,26 @@ sub cleanup {
 
 sub mode {
     my ($self, $pin, $mode) = @_;
+    if (! defined $mode){
+        my $reg = $pin > 7 ? MCP23017_IODIRB : MCP23017_IODIRA;
+        my $bit = _pinBit($pin);
+        return getRegisterBit($self->_fd, $reg, $bit);
+    }
     _check_mode($mode);
     pinMode($self->_fd, $pin, $mode);
+}
+sub pullup {
+    my ($self, $pin, $state) = @_;
+    if (! defined $state){
+        my $reg = $pin > 7 ? MCP23017_GPPUB : MCP23017_GPPUA;
+        my $bit = _pinBit($pin);
+        return getRegisterBit($self->_fd, $reg, $bit);
+    }
+    elsif ($state != 0 && $state != 1){
+        croak "state param must be 0 (off) or 1 (on)\n";
+    }
+
+    pullUp($self->_fd, $pin, $state);
 }
 sub read {
     my ($self, $pin) = @_;
@@ -58,6 +77,8 @@ sub mode_bank {
     $mode = REG_BITS_ON if $mode == MCP23017_INPUT;
 
     setRegister($self->_fd, $reg, $mode, "mode_bank()");
+
+    return getRegister($self->_fd, $reg);
 }
 sub write_bank {
     my ($self, $bank, $state) = @_;
@@ -68,6 +89,8 @@ sub write_bank {
     $state = REG_BITS_ON if $state == HIGH;
 
     setRegister($self->_fd, $reg, $state, "write_bank()");
+
+    return getRegister($self->_fd, $reg);
 }
 
 # register methods

@@ -37,5 +37,19 @@ for my $reg (MCP23017_IODIRA .. MCP23017_IODIRB){
     }
 }
 
+{ # get
+
+    $o->cleanup;
+
+    for (0..15){
+        is $o->mode($_), MCP23017_INPUT, "pin $_ INPUT ok";
+        $o->mode($_, MCP23017_OUTPUT);
+
+        is $o->mode($_), MCP23017_OUTPUT, "pin $_ OUTPUT ok";
+
+        $o->mode($_, MCP23017_INPUT);
+        is $o->mode($_), MCP23017_INPUT, "pin $_ back to INPUT ok";
+    }
+}
 done_testing();
 

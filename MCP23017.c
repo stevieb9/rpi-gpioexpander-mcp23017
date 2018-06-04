@@ -24,23 +24,20 @@
 #include "mcp23017.h"
 #include "bit.h"
 
-#define OUTPUT              0x00
-#define INPUT               0x01
+void GPIO_pullUp (int fd, int pin, int state){
+    int reg = pin < 8 ? MCP23017_GPPUA : MCP23017_GPPUB;
+    int bit = GPIO__pinBit(pin);
+    int value;
 
-#define HIGH                0x01
-#define LOW                 0x00
+    if (state == HIGH){
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
 
-#define MCP23017_IODIRA     0x00
-#define MCP23017_IODIRB     0x01
-
-#define MCP23017_IOCON_A    0x0A
-#define MCP23017_IOCON_B    0x0B
-
-#define MCP23017_GPIOA      0x12
-#define MCP23017_GPIOB      0x13
-
-#define MCP23017_OUTPUT     0x00
-#define MCP23017_INPUT      0x01
+    GPIO_setRegister(fd, reg, value, "pullUp()");
+}
 
 /* setup functions */
 
@@ -127,8 +124,8 @@ int GPIO_getRegister (int fd, int reg){
 }
 
 int GPIO_getRegisterBit (int fd, int reg, int bit){
+    bit = GPIO__pinBit(bit);
     int regData = GPIO_getRegister(fd, (int) reg);
-
     return bitGet(regData, bit, bit);
 }
 
@@ -156,7 +153,7 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
 
 /* pin functions */
 
-int _pinBit (int pin){
+int GPIO__pinBit (int pin){
     if (pin < 0 || pin > 15){
         croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
     }
@@ -170,14 +167,14 @@ int _pinBit (int pin){
 
 bool GPIO_readPin (int fd, int pin){
     int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
 
     return (bool) GPIO_getRegisterBit(fd, reg, bit);
 }
 
 void GPIO_writePin (int fd, int pin, bool state){
     int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
     int value;
 
     if (state == HIGH){
@@ -192,7 +189,7 @@ void GPIO_writePin (int fd, int pin, bool state){
 
 void GPIO_pinMode (int fd, int pin, int mode){
     int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
     int value;
 
     if (mode == INPUT){
@@ -224,7 +221,7 @@ void GPIO_clean (int fd){
     }
 }
 
-#line 228 "MCP23017.c"
+#line 225 "MCP23017.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -368,7 +365,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 372 "MCP23017.c"
+#line 369 "MCP23017.c"
 
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd)
@@ -483,6 +480,25 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_setRegister)
 }
 
 
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__pinBit); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017__pinBit)
+{
+    dVAR; dXSARGS;
+    if (items != 1)
+       croak_xs_usage(cv,  "pin");
+    {
+	int	pin = (int)SvIV(ST(0))
+;
+	int	RETVAL;
+	dXSTARG;
+
+	RETVAL = GPIO__pinBit(pin);
+	XSprePUSH; PUSHi((IV)RETVAL);
+    }
+    XSRETURN(1);
+}
+
+
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_readPin); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_readPin)
 {
@@ -544,6 +560,26 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_pinMode)
 }
 
 
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_pullUp); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_pullUp)
+{
+    dVAR; dXSARGS;
+    if (items != 3)
+       croak_xs_usage(cv,  "fd, pin, state");
+    {
+	int	fd = (int)SvIV(ST(0))
+;
+	int	pin = (int)SvIV(ST(1))
+;
+	int	state = (int)SvIV(ST(2))
+;
+
+	GPIO_pullUp(fd, pin, state);
+    }
+    XSRETURN_EMPTY;
+}
+
+
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean)
 {
@@ -555,10 +591,10 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean)
     {
 	int	fd = (int)SvIV(ST(0))
 ;
-#line 280 "MCP23017.xs"
+#line 287 "MCP23017.xs"
         I32* temp;
-#line 561 "MCP23017.c"
-#line 282 "MCP23017.xs"
+#line 597 "MCP23017.c"
+#line 289 "MCP23017.xs"
         temp = PL_markstack_ptr++;
         GPIO_clean(fd);
         if (PL_markstack_ptr != temp) {
@@ -566,7 +602,7 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean)
           XSRETURN_EMPTY;
         }
         return;
-#line 570 "MCP23017.c"
+#line 606 "MCP23017.c"
 	PUTBACK;
 	return;
     }
@@ -605,9 +641,11 @@ XS_EXTERNAL(boot_RPi__GPIOExpander__MCP23017)
         newXS_deffile("RPi::GPIOExpander::MCP23017::getRegisterBit", XS_RPi__GPIOExpander__MCP23017_getRegisterBit);
         newXS_deffile("RPi::GPIOExpander::MCP23017::getRegisterBits", XS_RPi__GPIOExpander__MCP23017_getRegisterBits);
         newXS_deffile("RPi::GPIOExpander::MCP23017::setRegister", XS_RPi__GPIOExpander__MCP23017_setRegister);
+        newXS_deffile("RPi::GPIOExpander::MCP23017::_pinBit", XS_RPi__GPIOExpander__MCP23017__pinBit);
         newXS_deffile("RPi::GPIOExpander::MCP23017::readPin", XS_RPi__GPIOExpander__MCP23017_readPin);
         newXS_deffile("RPi::GPIOExpander::MCP23017::writePin", XS_RPi__GPIOExpander__MCP23017_writePin);
         newXS_deffile("RPi::GPIOExpander::MCP23017::pinMode", XS_RPi__GPIOExpander__MCP23017_pinMode);
+        newXS_deffile("RPi::GPIOExpander::MCP23017::pullUp", XS_RPi__GPIOExpander__MCP23017_pullUp);
         newXS_deffile("RPi::GPIOExpander::MCP23017::clean", XS_RPi__GPIOExpander__MCP23017_clean);
 #if PERL_VERSION_LE(5, 21, 5)
 #  if PERL_VERSION_GE(5, 9, 0)

@@ -15,23 +15,20 @@
 #include "mcp23017.h"
 #include "bit.h"
 
-#define OUTPUT              0x00
-#define INPUT               0x01
+void GPIO_pullUp (int fd, int pin, int state){
+    int reg = pin < 8 ? MCP23017_GPPUA : MCP23017_GPPUB;
+    int bit = GPIO__pinBit(pin);
+    int value;
 
-#define HIGH                0x01
-#define LOW                 0x00
+    if (state == HIGH){
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
 
-#define MCP23017_IODIRA     0x00
-#define MCP23017_IODIRB     0x01
-
-#define MCP23017_IOCON_A    0x0A
-#define MCP23017_IOCON_B    0x0B
-
-#define MCP23017_GPIOA      0x12
-#define MCP23017_GPIOB      0x13
-
-#define MCP23017_OUTPUT     0x00
-#define MCP23017_INPUT      0x01
+    GPIO_setRegister(fd, reg, value, "pullUp()");
+}
 
 /* setup functions */
 
@@ -118,8 +115,8 @@ int GPIO_getRegister (int fd, int reg){
 }
 
 int GPIO_getRegisterBit (int fd, int reg, int bit){
+    bit = GPIO__pinBit(bit);
     int regData = GPIO_getRegister(fd, (int) reg);
-
     return bitGet(regData, bit, bit);
 }
 
@@ -147,7 +144,7 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
 
 /* pin functions */
 
-int _pinBit (int pin){
+int GPIO__pinBit (int pin){
     if (pin < 0 || pin > 15){
         croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
     }
@@ -161,14 +158,14 @@ int _pinBit (int pin){
 
 bool GPIO_readPin (int fd, int pin){
     int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
 
     return (bool) GPIO_getRegisterBit(fd, reg, bit);
 }
 
 void GPIO_writePin (int fd, int pin, bool state){
     int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
     int value;
 
     if (state == HIGH){
@@ -183,7 +180,7 @@ void GPIO_writePin (int fd, int pin, bool state){
 
 void GPIO_pinMode (int fd, int pin, int mode){
     int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
-    int bit = _pinBit(pin);
+    int bit = GPIO__pinBit(pin);
     int value;
 
     if (mode == INPUT){
@@ -255,6 +252,10 @@ GPIO_setRegister (fd, reg, value, name)
 # pin functions
 
 int
+GPIO__pinBit (pin)
+    int pin
+
+int
 GPIO_readPin (fd, pin)
     int fd
     int pin
@@ -270,6 +271,12 @@ GPIO_pinMode (fd, pin, mode)
     int fd
     int pin
     int mode
+
+void
+GPIO_pullUp (fd, pin, state)
+    int fd
+    int pin
+    int state
 
 # operational functions
 
