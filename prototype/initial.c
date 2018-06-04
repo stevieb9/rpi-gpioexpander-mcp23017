@@ -107,7 +107,7 @@ int getRegisterBits (int fd, int reg, int msb, int lsb){
 
 int setRegister(int fd, int reg, int value, char* name){
 
-    int buf[2] = {reg, value};
+    uint8_t buf[2] = {reg, value};
 
     if ((write(fd, buf, sizeof(buf))) != 2){
         close(fd);

@@ -8,10 +8,20 @@ our $VERSION = '0.01';
 require XSLoader;
 XSLoader::load('RPi::GPIOExpander::MCP23017', $VERSION);
 
+sub reg_bit {
+    my ($self, $reg, $bit) = @_;
+
+    my $regval = getRegisterBit($self->_fd, $reg, $bit);
+    return $regval;
+}
+
 sub reg {
-    my ($self, $reg) = @_;
-    my $regval = getRegister($self->_fd, 0x00);
-    print "** $regval\n";
+    my ($self, $reg, $data) = @_;
+
+    if (defined $data){
+        setRegister($self->_fd, $reg, $data, 'test');
+    }
+    my $regval = getRegister($self->_fd, $reg);
     return $regval;
 }
 sub new {

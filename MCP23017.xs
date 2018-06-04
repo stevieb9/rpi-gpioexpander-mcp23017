@@ -32,6 +32,8 @@
 #define MCP23017_OUTPUT     0x00
 #define MCP23017_INPUT      0x01
 
+
+void checkRegisterReadOnly(uint8_t reg);
 int getFd (int expanderAddr);
 int getRegister (int fd, int reg);
 int setRegister (int fd, int reg, int value, char* name);
@@ -57,8 +59,6 @@ bool readPin (int fd, int pin){
     int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
     int bit = _pinBit(pin);
 
-    printf("reg: 0x%x, bit: %d\n", reg, bit);
-
     return getRegisterBit(fd, reg, bit);
 }
 
@@ -75,6 +75,7 @@ void writePin (int fd, int pin, bool state){
     else {
         value = bitOff(getRegister(fd, reg), bit);
     }
+
     setRegister(fd, reg, value, "writePin()");
 }
 
@@ -93,8 +94,8 @@ void pinMode (int fd, int pin, int mode){
 
     printf("val: %d\n", value);
     setRegister(fd, reg, value, "pinMode()");
-    printf("reg: %d\n", getRegister(fd, MCP23017_IODIRB));
 }
+
 int getFd (int expanderAddr){
 
     int fd;
@@ -137,7 +138,7 @@ void _close (int fd){
 
 int getRegister (int fd, int reg){
 
-    int buf[1];
+    uint8_t buf[1];
     buf[0] = reg;
 
     if ((write(fd, buf, 1)) != 1){
@@ -154,8 +155,7 @@ int getRegister (int fd, int reg){
         croak("Could not read register %d: %s\n", reg, strerror(errno));
     }
 
-    printf("REG: %d\n", buf[0]);
-    return (int) buf[0];
+    return buf[0];
 }
 
 int getRegisterBit (int fd, int reg, int bit){
@@ -169,10 +169,10 @@ int getRegisterBits (int fd, int reg, int msb, int lsb){
 }
 
 int setRegister(int fd, int reg, int value, char* name){
+    checkRegisterReadOnly(reg);
 
-    int buf[2] = {reg, value};
+    uint8_t buf[2] = {reg, value};
 
-    printf("BUF: %d, %d, size: %d\n", buf[0], buf[1], sizeof(buf));
     if ((write(fd, buf, sizeof(buf))) != 2){
         close(fd);
         printf(
@@ -185,6 +185,17 @@ int setRegister(int fd, int reg, int value, char* name){
     }
 
     return 0;
+}
+
+void checkRegisterReadOnly (uint8_t reg){
+    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+
+    for (int i=0; i < sizeof(readOnlyRegisters); i++){
+        if (reg == readOnlyRegisters[i]){
+            warn("error: register 0x%x is read-only\n", reg);
+            croak("Attempt to write to read-only register failed\n");
+        }
+    }
 }
 
 void cleanup (int fd){

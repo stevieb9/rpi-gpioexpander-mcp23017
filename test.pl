@@ -16,5 +16,9 @@ $o->write(15, 1);
 
 say $o->read(15);
 
-say $o->reg(0x01);
+#say $o->reg(0x01);
+
+for (0..21){
+    printf("$_:\t 0b%b\n", $o->reg($_));
+}
 
