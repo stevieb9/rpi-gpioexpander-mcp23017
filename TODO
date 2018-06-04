@@ -1,0 +1,3 @@
+- write methods to set "both" registers, not just "bank"
+- pull ups
+- interrupts

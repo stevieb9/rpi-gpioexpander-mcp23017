@@ -29,5 +29,5 @@ void GPIO_pinMode (int fd, int pin, int mode);
 
 // operational functions
 
-void GPIO_cleanup (int fd);
+void GPIO_clean (int fd);
 

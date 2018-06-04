@@ -3,19 +3,83 @@ package RPi::GPIOExpander::MCP23017;
 use strict;
 use warnings;
 
+use Carp qw(croak);
+use RPi::Const qw(:all);
+
 our $VERSION = '0.01';
 
 require XSLoader;
 XSLoader::load('RPi::GPIOExpander::MCP23017', $VERSION);
 
 use constant {
-    IODIRA          => 0x00,
-    IODIRB          => 0x01,
-
-    GPIOA           => 0x12,
-    GPIOB           => 0x13,
+    BANK_A          => 0,
+    BANK_B          => 1,
+    REG_BITS_ON     => 0xFF,
+    REG_BITS_OFF    => 0x00,
 };
 
+# operational methods
+
+sub new {
+    my ($class, $addr) = @_;
+    my $self = bless {}, $class;
+    $self->_fd(getFd($addr // 0x20));
+    return $self;
+}
+sub cleanup {
+    clean($_[0]->_fd);
+}
+
+# pin methods
+
+sub mode {
+    my ($self, $pin, $mode) = @_;
+    _check_mode($mode);
+    pinMode($self->_fd, $pin, $mode);
+}
+sub read {
+    my ($self, $pin) = @_;
+    return readPin($self->_fd, $pin);
+}
+sub write {
+    my ($self, $pin, $state) = @_;
+    return writePin($self->_fd, $pin, $state);
+}
+
+# bank methods
+
+sub mode_bank {
+    my ($self, $bank, $mode) = @_;
+
+    _check_bank($bank);
+    my $reg = $bank == BANK_A ? MCP23017_IODIRA : MCP23017_IODIRB;
+
+    _check_mode($mode);
+    $mode = REG_BITS_ON if $mode == MCP23017_INPUT;
+
+    setRegister($self->_fd, $reg, $mode, "mode_bank()");
+}
+sub write_bank {
+    my ($self, $bank, $state) = @_;
+
+    _check_bank($bank);
+
+    my $reg = $bank == BANK_A ? MCP23017_GPIOA : MCP23017_GPIOB;
+    $state = REG_BITS_ON if $state == HIGH;
+
+    setRegister($self->_fd, $reg, $state, "write_bank()");
+}
+
+# register methods
+
+sub register {
+    my ($self, $reg, $data) = @_;
+
+    if (defined $data){
+        setRegister($self->_fd, $reg, $data, 'register()');
+    }
+    return getRegister($self->_fd, $reg);
+}
 sub register_bit {
     my ($self, $reg, $bit) = @_;
 
@@ -23,48 +87,19 @@ sub register_bit {
     return $regval;
 }
 
-sub register {
-    my ($self, $reg, $data) = @_;
+# internal/helper methods
 
-    if (defined $data){
-        setRegister($self->_fd, $reg, $data, 'test');
+sub _check_bank {
+    my ($bank) = @_;
+    if ($bank != BANK_A && $bank != BANK_B){
+        croak "bank param must be either 0 or 1, not '$bank'\n";
     }
-    my $regval = getRegister($self->_fd, $reg);
-    return $regval;
 }
-sub new {
-    my ($class, $addr) = @_;
-    my $self = bless {}, $class;
-    $self->_fd(getFd($addr));
-    return $self;
-}
-sub bank_mode {
-    my ($self, $bank, $mode) = @_;
-    my $reg = $bank == 0 ? IODIRA : IODIRB;
-    $mode = 255 if $mode == 1;
-    setRegister($self->_fd, $reg, $mode, "bank_mode");
-}
-sub bank_write {
-    my ($self, $bank, $state) = @_;
-    my $reg = $bank == 0 ? GPIOA : GPIOB;
-    $state = 255 if $state == 1;
-    setRegister($self->_fd, $reg, $state, "bank_write");
-}
-sub mode {
-    my ($self, $pin, $mode) = @_;
-    pinMode($self->_fd, $pin, $mode);
-}
-sub read {
-    my ($self, $pin) = @_;
-    return readPin($self->_fd, $pin);
-}
-
-sub write {
-    my ($self, $pin, $state) = @_;
-    return writePin($self->_fd, $pin, $state);
-}
-sub clean {
-    cleanup($_[0]->_fd);
+sub _check_mode {
+    my ($mode) = @_;
+    if ($mode != MCP23017_INPUT && $mode != MCP23017_OUTPUT){
+        croak "mode param must be either 0 or 1, not '$mode'\n";
+    }
 }
 sub _fd {
     my ($self, $fd) = @_;

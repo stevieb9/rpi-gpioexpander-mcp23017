@@ -42,7 +42,7 @@ int GPIO_getFd (int expanderAddr){
     if ((fd = open("/dev/i2c-1", O_RDWR)) < 0) {
         close(fd);
         printf("Couldn't open the device: %s\n", strerror(errno));
-        exit(-1);
+        croak("...this is a fatal error\n");
     }
 
     if (ioctl(fd, I2C_SLAVE_FORCE, expanderAddr) < 0) {
@@ -199,7 +199,7 @@ void GPIO_pinMode (int fd, int pin, int mode){
 
 /* operational functions */
 
-void GPIO_cleanup (int fd){
+void GPIO_clean (int fd){
 
     for (int i = 0; i < 0x16; i++){
         if (_skipRegisterReadOnly(i)){
@@ -274,13 +274,13 @@ GPIO_pinMode (fd, pin, mode)
 # operational functions
 
 void
-GPIO_cleanup (fd)
+GPIO_clean (fd)
 	int	fd
         PREINIT:
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        GPIO_cleanup(fd);
+        GPIO_clean(fd);
         if (PL_markstack_ptr != temp) {
           PL_markstack_ptr = temp;
           XSRETURN_EMPTY;

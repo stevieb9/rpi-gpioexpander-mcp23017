@@ -51,7 +51,7 @@ int GPIO_getFd (int expanderAddr){
     if ((fd = open("/dev/i2c-1", O_RDWR)) < 0) {
         close(fd);
         printf("Couldn't open the device: %s\n", strerror(errno));
-        exit(-1);
+        croak("...this is a fatal error\n");
     }
 
     if (ioctl(fd, I2C_SLAVE_FORCE, expanderAddr) < 0) {
@@ -87,10 +87,21 @@ void _checkRegisterReadOnly (uint8_t reg){
 
     for (int i=0; i < sizeof(readOnlyRegisters); i++){
         if (reg == readOnlyRegisters[i]){
-            warn("error: register 0x%x is read-only\n", reg);
+            warn("error: register 0x%x is read-only...\n", reg);
             croak("Attempt to write to read-only register failed\n");
         }
     }
+}
+
+int _skipRegisterReadOnly (uint8_t reg){
+    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+
+    for (int i=0; i < sizeof(readOnlyRegisters); i++){
+        if (reg == readOnlyRegisters[i]){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int GPIO_getRegister (int fd, int reg){
@@ -143,8 +154,6 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
     return 0;
 }
 
-
-
 /* pin functions */
 
 int _pinBit (int pin){
@@ -172,9 +181,7 @@ void GPIO_writePin (int fd, int pin, bool state){
     int value;
 
     if (state == HIGH){
-//        setRegisterBit
         value = bitOn(GPIO_getRegister(fd, reg), bit);
-
     }
     else {
         value = bitOff(GPIO_getRegister(fd, reg), bit);
@@ -201,13 +208,13 @@ void GPIO_pinMode (int fd, int pin, int mode){
 
 /* operational functions */
 
-void GPIO_cleanup (int fd){
+void GPIO_clean (int fd){
 
     for (int i = 0; i < 0x16; i++){
-        if (i == MCP23017_IOCON_A || i == MCP23017_IOCON_B){
-            // never do anything with the shared control registers
+        if (_skipRegisterReadOnly(i)){
             continue;
         }
+
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
             GPIO_setRegister(fd, (int) i, (int) 0xFF, "IODIR");
@@ -217,7 +224,7 @@ void GPIO_cleanup (int fd){
     }
 }
 
-#line 221 "MCP23017.c"
+#line 228 "MCP23017.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -361,7 +368,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 365 "MCP23017.c"
+#line 372 "MCP23017.c"
 
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_getFd)
@@ -537,8 +544,8 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_pinMode)
 }
 
 
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_cleanup); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_cleanup)
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_clean)
 {
     dVAR; dXSARGS;
     if (items != 1)
@@ -548,18 +555,18 @@ XS_EUPXS(XS_RPi__GPIOExpander__MCP23017_cleanup)
     {
 	int	fd = (int)SvIV(ST(0))
 ;
-#line 273 "MCP23017.xs"
+#line 280 "MCP23017.xs"
         I32* temp;
-#line 554 "MCP23017.c"
-#line 275 "MCP23017.xs"
+#line 561 "MCP23017.c"
+#line 282 "MCP23017.xs"
         temp = PL_markstack_ptr++;
-        GPIO_cleanup(fd);
+        GPIO_clean(fd);
         if (PL_markstack_ptr != temp) {
           PL_markstack_ptr = temp;
           XSRETURN_EMPTY;
         }
         return;
-#line 563 "MCP23017.c"
+#line 570 "MCP23017.c"
 	PUTBACK;
 	return;
     }
@@ -601,7 +608,7 @@ XS_EXTERNAL(boot_RPi__GPIOExpander__MCP23017)
         newXS_deffile("RPi::GPIOExpander::MCP23017::readPin", XS_RPi__GPIOExpander__MCP23017_readPin);
         newXS_deffile("RPi::GPIOExpander::MCP23017::writePin", XS_RPi__GPIOExpander__MCP23017_writePin);
         newXS_deffile("RPi::GPIOExpander::MCP23017::pinMode", XS_RPi__GPIOExpander__MCP23017_pinMode);
-        newXS_deffile("RPi::GPIOExpander::MCP23017::cleanup", XS_RPi__GPIOExpander__MCP23017_cleanup);
+        newXS_deffile("RPi::GPIOExpander::MCP23017::clean", XS_RPi__GPIOExpander__MCP23017_clean);
 #if PERL_VERSION_LE(5, 21, 5)
 #  if PERL_VERSION_GE(5, 9, 0)
     if (PL_unitcheckav)

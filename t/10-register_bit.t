@@ -12,6 +12,8 @@ my $o = $mod->new(0x20);
 my @bits = (1, 2, 4, 8, 16, 32, 64, 128);
 
 for my $reg (0x00..0x09, 0x0C..0x0D, 0x14..0x15){
+    # skip read-only registers
+
     for my $bit (0..$#bits){
         is
             $o->register($reg, $bits[$bit]),

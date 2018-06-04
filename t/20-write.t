@@ -2,6 +2,7 @@ use warnings;
 use strict;
 use feature 'say';
 
+use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
@@ -9,37 +10,43 @@ my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
 
-for my $reg (0x00..0x01){
-    is $o->register($reg, 255), 255, "pins in bank $reg are INPUT ok";
+for my $reg (MCP23017_IODIRA .. MCP23017_IODIRB){
+    is $o->register($reg, 0xFF), 0xFF, "pins in bank $reg are INPUT ok";
 
-    if ($reg == 0x00) {
-        for my $pin (0 .. 7) {
-            $o->mode($pin, 0);
-            is $o->register_bit($reg, $pin), 0, "pin $pin is now in OUTPUT ok";
+    if ($reg == MCP23017_IODIRA){
+        for my $pin (0 .. 7){
+            $o->mode($pin, MCP23017_OUTPUT);
+            is
+                $o->register_bit($reg, $pin),
+                MCP23017_OUTPUT,
+                "pin $pin is now in OUTPUT ok";
 
-            $o->write($pin, 1);
-            is $o->read($pin), 1, "pin $pin is HIGH ok";
-            $o->write($pin, 0);
-            is $o->read($pin), 0, "pin $pin is LOW ok";
+            $o->write($pin, HIGH);
+            is $o->read($pin), HIGH, "pin $pin is HIGH ok";
+            $o->write($pin, LOW);
+            is $o->read($pin), LOW, "pin $pin is LOW ok";
 
 
         }
 
-        is $o->register($reg, 255), 255, "pins in bank $reg back to INPUT ok";
+        is $o->register($reg, 0xFF), 0xFF, "pins in bank $reg back to INPUT ok";
     }
 
-    if ($reg == 0x01) {
+    if ($reg == MCP23017_IODIRB) {
         for my $pin (8..15) {
-            $o->mode($pin, 0);
-            is $o->register_bit($reg, $pin), 0, "pin $pin is now in OUTPUT ok";
+            $o->mode($pin, MCP23017_OUTPUT);
+            is
+                $o->register_bit($reg, $pin),
+                MCP23017_OUTPUT,
+                "pin $pin is now in OUTPUT ok";
 
-            $o->write($pin, 1);
-            is $o->read($pin), 1, "pin $pin is HIGH ok";
-            $o->write($pin, 0);
-            is $o->read($pin), 0, "pin $pin is LOW ok";
+            $o->write($pin, HIGH);
+            is $o->read($pin), HIGH, "pin $pin is HIGH ok";
+            $o->write($pin, LOW);
+            is $o->read($pin), LOW, "pin $pin is LOW ok";
         }
 
-        is $o->register($reg, 255), 255, "pins in bank $reg back to INPUT ok";
+        is $o->register($reg, 0xFF), 0xFF, "pins in bank $reg back to INPUT ok";
     }
 }
 

@@ -2,6 +2,7 @@ use warnings;
 use strict;
 use feature 'say';
 
+use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
@@ -9,77 +10,105 @@ my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
 
-$o->clean;
+use constant {
+    BANK_A => 0,
+    BANK_B => 1,
+};
+
+$o->cleanup;
 
 { # 0 OUTPUT/HIGH, 1 INPUT/read
-    is $o->register(0x00, 255), 255, "IODIR pins in bank A are INPUT ok";
-    is $o->register(0x01, 255), 255, "IODIR pins in bank B are INPUT ok";
+    is
+        $o->register(MCP23017_IODIRA, 0xFF),
+        0xFF,
+        "IODIR pins in bank A are INPUT ok";
 
-    $o->bank_mode(0, 0);
-    is $o->register(0x00, 0), 0, "pins in bank 0 are OUTPUT ok";
+    is
+        $o->register(MCP23017_IODIRB, 0xFF),
+        0xFF,
+        "IODIR pins in bank B are INPUT ok";
 
-    $o->bank_mode(1, 1);
-    is $o->register(0x01), 255, "pins in bank 1 are INPUT ok";
+    $o->mode_bank(BANK_A, MCP23017_OUTPUT);
 
-    $o->bank_write(0, 1);
-    is $o->register(0x12), 255, "pins in bank 0 are HIGH ok";
+    is
+        $o->register(MCP23017_IODIRA, MCP23017_OUTPUT),
+        MCP23017_OUTPUT,
+        "pins in bank 0 are OUTPUT ok";
+
+    $o->mode_bank(BANK_B, MCP23017_INPUT);
+
+    is
+        $o->register(MCP23017_IODIRB),
+        0xFF,
+        "pins in bank 1 are INPUT ok";
+
+    $o->write_bank(BANK_A, HIGH);
+
+    is $o->register(MCP23017_GPIOA), 0xFF, "pins in bank 0 are HIGH ok";
 
     for (0..7){
         my ($pin_a, $pin_b) = ($_, $_ + 8);
         is
             $o->read($pin_b),
-            1,
+            HIGH,
             "reading bank A pin $pin_a from bank B $pin_b is HIGH ok";
     }
 
-    $o->bank_write(0, 0);
-    is $o->register(0x12), 0, "pins in bank 0 are LOW ok";
+    $o->write_bank(BANK_A, LOW);
+    is $o->register(MCP23017_GPIOA), LOW, "pins in bank 0 are LOW ok";
 
     for (0..7){
         my ($pin_a, $pin_b) = ($_, $_ + 8);
         is
             $o->read($pin_b),
-            0,
+            LOW,
             "reading bank A pin $pin_a from bank B $pin_b is LOW ok";
     }
 }
 
 { # 0 INPUT/read, 1 OUTPUT/HIGH
 
-    $o->clean;
+    $o->cleanup;
 
-    is $o->register(0x00, 255), 255, "IODIR pins in bank A are INPUT ok";
-    is $o->register(0x01, 255), 255, "IODIR pins in bank B are INPUT ok";
+    is
+        $o->register(MCP23017_IODIRA, 0xFF),
+        0xFF,
+        "IODIR pins in bank A are INPUT ok";
 
-    $o->bank_mode(1, 0);
-    is $o->register(0x01), 0, "pins in bank 1(B) are OUTPUT ok";
+    is
+        $o->register(MCP23017_IODIRB, 0xFF),
+        0xFF,
+        "IODIR pins in bank B are INPUT ok";
 
-    $o->bank_mode(0, 1);
-    is $o->register(0x00), 255, "pins in bank 0(A) are INPUT ok";
+    $o->mode_bank(BANK_B, MCP23017_OUTPUT);
+    is $o->register(MCP23017_IODIRB), 0, "pins in bank 1(B) are OUTPUT ok";
 
-    $o->bank_write(1, 1);
-    is $o->register(0x13), 255, "pins in bank 1(B) are HIGH ok";
+    $o->mode_bank(BANK_A, MCP23017_INPUT);
+    is $o->register(MCP23017_IODIRA), 0xFF, "pins in bank 0(A) are INPUT ok";
+
+    $o->write_bank(BANK_B, HIGH);
+    is $o->register(MCP23017_GPIOB), 255, "pins in bank 1(B) are HIGH ok";
 
     for (0..7){
         my ($pin_a, $pin_b) = ($_, $_ + 8);
         is
             $o->read($pin_a),
-            1,
+            HIGH,
             "reading bank B pin $pin_b from bank A $pin_a is HIGH ok";
     }
 
-    $o->bank_write(1, 0);
-    is $o->register(0x13), 0, "pins in bank 0 are LOW ok";
+    $o->write_bank(BANK_B, LOW);
+    is $o->register(MCP23017_GPIOB), 0, "pins in bank 1 are LOW ok";
 
     for (0..7){
         my ($pin_a, $pin_b) = ($_, $_ + 8);
         is
             $o->read($pin_a),
-            0,
+            LOW,
             "reading bank B pin $pin_b from bank A $pin_a is LOW ok";
     }
 
-    $o->clean;
+    $o->cleanup;
 }
 
 
