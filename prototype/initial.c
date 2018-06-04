@@ -25,7 +25,7 @@
 #define MCP23017_INPUT      0x01
 
 int getFd (int expanderAddr);
-char getRegister (int fd, char reg);
+int getRegister (int fd, int reg);
 
 void _establishI2C (int fd);
 void _close (int fd);
@@ -71,9 +71,9 @@ void _close (int fd){
     close(fd);
 }
 
-char getRegister (int fd, char reg){
+int getRegister (int fd, int reg){
 
-    char buf[1];
+    int buf[1];
     buf[0] = reg;
 
     if ((write(fd, buf, 1)) != 1){
@@ -95,19 +95,19 @@ char getRegister (int fd, char reg){
     return buf[0];
 }
 
-char getRegisterBit (int fd, int reg, int bit){
-    int regData = getRegister(fd, (char) reg);
+int getRegisterBit (int fd, int reg, int bit){
+    int regData = getRegister(fd, reg);
 
-    return (char) bitGet((unsigned int) regData, bit, bit);
+    return bitGet((unsigned int) regData, bit, bit);
 }
 
-char getRegisterBits (int fd, char reg, int msb, int lsb){
-    return (char) bitGet((unsigned int) getRegister(fd, (char) reg), msb, lsb);
+int getRegisterBits (int fd, int reg, int msb, int lsb){
+    return bitGet((unsigned int) getRegister(fd, reg), msb, lsb);
 }
 
-int setRegister(int fd, char reg, char value, char* name){
+int setRegister(int fd, int reg, int value, char* name){
 
-    char buf[2] = {reg, value};
+    int buf[2] = {reg, value};
 
     if ((write(fd, buf, sizeof(buf))) != 2){
         close(fd);
@@ -131,10 +131,10 @@ void cleanup (int fd){
         }
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
-            setRegister(fd, i, (char) 0xFF, "IODIR");
+            setRegister(fd, i, 0xFF, "IODIR");
             continue;
         }
-        setRegister(fd, i, (char) 0x00, "rest");
+        setRegister(fd, i, 0x00, "rest");
     }
 }
 void main (){

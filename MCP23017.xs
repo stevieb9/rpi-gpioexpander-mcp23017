@@ -34,9 +34,9 @@
 
 int getFd (int expanderAddr);
 int getRegister (int fd, int reg);
-int setRegister (int fd, char reg, char value, char* name);
+int setRegister (int fd, int reg, int value, char* name);
 
-char getRegisterBit (int fd, int reg, int bit);
+int getRegisterBit (int fd, int reg, int bit);
 
 void _establishI2C (int fd);
 void _close (int fd);
@@ -54,7 +54,7 @@ int _pinBit (int pin){
 }
 
 bool readPin (int fd, int pin){
-    char reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
     int bit = _pinBit(pin);
 
     printf("reg: 0x%x, bit: %d\n", reg, bit);
@@ -75,11 +75,11 @@ void writePin (int fd, int pin, bool state){
     else {
         value = bitOff(getRegister(fd, reg), bit);
     }
-    setRegister(fd, reg, (char) value, "writePin()");
+    setRegister(fd, reg, value, "writePin()");
 }
 
 void pinMode (int fd, int pin, int mode){
-    char reg = pin < 8 ? (char) MCP23017_IODIRA : (char) MCP23017_IODIRB;
+    int reg = pin < 8 ? (int) MCP23017_IODIRA : (int) MCP23017_IODIRB;
     int bit = _pinBit(pin);
     int value;
 
@@ -92,7 +92,7 @@ void pinMode (int fd, int pin, int mode){
     }
 
     printf("val: %d\n", value);
-    setRegister(fd, reg, (char) value, "pinMode()");
+    setRegister(fd, reg, value, "pinMode()");
     printf("reg: %d\n", getRegister(fd, MCP23017_IODIRB));
 }
 int getFd (int expanderAddr){
@@ -143,9 +143,9 @@ int getRegister (int fd, int reg){
     if ((write(fd, buf, 1)) != 1){
         close(fd);
         croak(
-                "Could not write register pointer %d: %s\n",
-                reg,
-                strerror(errno)
+            "Could not write register pointer %d: %s\n",
+            reg,
+            strerror(errno)
         );
     }
 
@@ -158,26 +158,28 @@ int getRegister (int fd, int reg){
     return (int) buf[0];
 }
 
-char getRegisterBit (int fd, int reg, int bit){
-    int regData = getRegister(fd, (char) reg);
+int getRegisterBit (int fd, int reg, int bit){
+    int regData = getRegister(fd, (int) reg);
 
-    return (char) bitGet((unsigned int) regData, bit, bit);
+    return (int) bitGet((unsigned int) regData, bit, bit);
 }
 
-char getRegisterBits (int fd, char reg, int msb, int lsb){
-    return (char) bitGet((unsigned int) getRegister(fd, (char) reg), msb, lsb);
+int getRegisterBits (int fd, int reg, int msb, int lsb){
+    return (int) bitGet((unsigned int) getRegister(fd, (int) reg), msb, lsb);
 }
 
-int setRegister(int fd, char reg, char value, char* name){
+int setRegister(int fd, int reg, int value, char* name){
 
-    char buf[2] = {reg, value};
+    int buf[2] = {reg, value};
 
+    printf("BUF: %d, %d, size: %d\n", buf[0], buf[1], sizeof(buf));
     if ((write(fd, buf, sizeof(buf))) != 2){
         close(fd);
         printf(
                 "Could not write to the %s register: %s\n",
                 name,
-                strerror(errno)
+                //strerror(errno)
+                "test"
         );
         exit(-1);
     }
@@ -194,10 +196,10 @@ void cleanup (int fd){
         }
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
-            setRegister(fd, (char) i, (char) 0xFF, "IODIR");
+            setRegister(fd, (int) i, (int) 0xFF, "IODIR");
             continue;
         }
-        setRegister(fd, (char) i, (char) 0x00, "rest");
+        setRegister(fd, i, 0x00, "rest");
     }
 }
 
@@ -243,25 +245,25 @@ getRegister (fd, reg)
 	int	fd
 	int	reg
 
-char
+int
 getRegisterBit (fd, reg, bit)
 	int	fd
 	int	reg
 	int	bit
 
-char
+int
 getRegisterBits (fd, reg, msb, lsb)
 	int	fd
-	char	reg
+	int	reg
 	int	msb
 	int	lsb
 
 int
 setRegister (fd, reg, value, name)
 	int	fd
-	char	reg
-	char	value
-	char *	name
+	int	reg
+	int	value
+	char* name
 
 int readPin (fd, pin)
     int fd
