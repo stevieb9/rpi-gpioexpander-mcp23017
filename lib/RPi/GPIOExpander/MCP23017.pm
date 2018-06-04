@@ -8,6 +8,14 @@ our $VERSION = '0.01';
 require XSLoader;
 XSLoader::load('RPi::GPIOExpander::MCP23017', $VERSION);
 
+use constant {
+    IODIRA          => 0x00,
+    IODIRB          => 0x01,
+
+    GPIOA           => 0x12,
+    GPIOB           => 0x13,
+};
+
 sub register_bit {
     my ($self, $reg, $bit) = @_;
 
@@ -30,6 +38,18 @@ sub new {
     $self->_fd(getFd($addr));
     return $self;
 }
+sub bank_mode {
+    my ($self, $bank, $mode) = @_;
+    my $reg = $bank == 0 ? IODIRA : IODIRB;
+    $mode = 255 if $mode == 1;
+    setRegister($self->_fd, $reg, $mode, "bank_mode");
+}
+sub bank_write {
+    my ($self, $bank, $state) = @_;
+    my $reg = $bank == 0 ? GPIOA : GPIOB;
+    $state = 255 if $state == 1;
+    setRegister($self->_fd, $reg, $state, "bank_write");
+}
 sub mode {
     my ($self, $pin, $mode) = @_;
     pinMode($self->_fd, $pin, $mode);
@@ -38,9 +58,13 @@ sub read {
     my ($self, $pin) = @_;
     return readPin($self->_fd, $pin);
 }
+
 sub write {
     my ($self, $pin, $state) = @_;
     return writePin($self->_fd, $pin, $state);
+}
+sub clean {
+    cleanup($_[0]->_fd);
 }
 sub _fd {
     my ($self, $fd) = @_;

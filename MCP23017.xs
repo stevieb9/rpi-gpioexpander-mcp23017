@@ -78,10 +78,21 @@ void _checkRegisterReadOnly (uint8_t reg){
 
     for (int i=0; i < sizeof(readOnlyRegisters); i++){
         if (reg == readOnlyRegisters[i]){
-            warn("error: register 0x%x is read-only\n", reg);
+            warn("error: register 0x%x is read-only...\n", reg);
             croak("Attempt to write to read-only register failed\n");
         }
     }
+}
+
+int _skipRegisterReadOnly (uint8_t reg){
+    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+
+    for (int i=0; i < sizeof(readOnlyRegisters); i++){
+        if (reg == readOnlyRegisters[i]){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int GPIO_getRegister (int fd, int reg){
@@ -134,8 +145,6 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
     return 0;
 }
 
-
-
 /* pin functions */
 
 int _pinBit (int pin){
@@ -163,9 +172,7 @@ void GPIO_writePin (int fd, int pin, bool state){
     int value;
 
     if (state == HIGH){
-//        setRegisterBit
         value = bitOn(GPIO_getRegister(fd, reg), bit);
-
     }
     else {
         value = bitOff(GPIO_getRegister(fd, reg), bit);
@@ -195,10 +202,10 @@ void GPIO_pinMode (int fd, int pin, int mode){
 void GPIO_cleanup (int fd){
 
     for (int i = 0; i < 0x16; i++){
-        if (i == MCP23017_IOCON_A || i == MCP23017_IOCON_B){
-            // never do anything with the shared control registers
+        if (_skipRegisterReadOnly(i)){
             continue;
         }
+
         if (i == MCP23017_IODIRA || i == MCP23017_IODIRB){
             // direction registers get set back to INPUT
             GPIO_setRegister(fd, (int) i, (int) 0xFF, "IODIR");
