@@ -6,6 +6,11 @@ use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
+use constant {
+    BANK_A => 0,
+    BANK_B => 1,
+};
+
 my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
@@ -63,7 +68,19 @@ for my $reg (MCP23017_GPPUA .. MCP23017_GPPUB){
         is $o->pullup($_), LOW, "pin $_ pullup back to off ok";
     }
 
-#    $o->cleanup;
+    $o->cleanup;
 }
+
+{ # bad params
+
+    is eval { $o->mode_bank(5); 1; }, undef, "fails on invalid bank";
+    is eval { $o->mode_bank(BANK_A, 5); 1; }, undef, "fails on invalid state";
+
+}
+{ # return if no state sent
+
+    is $o->mode_bank(BANK_A), 0xFF, "returns bank register if no state sent";
+}
+
 done_testing();
 

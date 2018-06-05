@@ -1,30 +1,19 @@
 use warnings;
 use strict;
+use feature 'say';
 
+use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 
 my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
 
-my @pins = qw(0 15);
+$o->cleanup;
 
-printf("IODIRA: 0b%b\n", $o->register(0x00));
-printf("IODIRB: 0b%b\n", $o->register(0x01));
+say $o->register(MCP23017_GPIOA);
 
-for my $pin (@pins){
-    $o->mode($pin, 0);
-    $o->write($pin, 1);
-}
-printf("IODIRA: 0b%b\n", $o->register(0x00));
-printf("IODIRB: 0b%b\n", $o->register(0x01));
-
-sleep 5;
-
-for my $pin (@pins){
-    $o->write($pin, 0);
-    $o->mode($pin, 1);
+for (0x00..0x15){
+    printf("0x%x: 0b%b\n", $_, $o->register($_));
 }
 
-printf("IODIRA: 0b%b\n", $o->register(0x00));
-printf("IODIRB: 0b%b\n", $o->register(0x01));

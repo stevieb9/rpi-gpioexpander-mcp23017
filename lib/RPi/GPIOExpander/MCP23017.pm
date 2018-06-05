@@ -5,7 +5,6 @@ use warnings;
 
 use Carp qw(croak);
 use RPi::Const qw(:all);
-use RPi::Const qw(:all);
 
 our $VERSION = '0.01';
 
@@ -35,24 +34,27 @@ sub cleanup {
 
 sub mode {
     my ($self, $pin, $mode) = @_;
+
     if (! defined $mode){
         my $reg = $pin > 7 ? MCP23017_IODIRB : MCP23017_IODIRA;
         my $bit = _pinBit($pin);
         return getRegisterBit($self->_fd, $reg, $bit);
     }
+
     _check_mode($mode);
+
     pinMode($self->_fd, $pin, $mode);
 }
 sub pullup {
     my ($self, $pin, $state) = @_;
+
     if (! defined $state){
         my $reg = $pin > 7 ? MCP23017_GPPUB : MCP23017_GPPUA;
         my $bit = _pinBit($pin);
         return getRegisterBit($self->_fd, $reg, $bit);
     }
-    elsif ($state != 0 && $state != 1){
-        croak "state param must be 0 (off) or 1 (on)\n";
-    }
+
+    _check_pullup($state);
 
     pullUp($self->_fd, $pin, $state);
 }
@@ -62,6 +64,9 @@ sub read {
 }
 sub write {
     my ($self, $pin, $state) = @_;
+
+    _check_write($state);
+
     return writePin($self->_fd, $pin, $state);
 }
 
@@ -72,6 +77,10 @@ sub mode_bank {
 
     _check_bank($bank);
     my $reg = $bank == BANK_A ? MCP23017_IODIRA : MCP23017_IODIRB;
+
+    if (! defined $mode){
+        return getRegister($self->_fd, $reg);
+    }
 
     _check_mode($mode);
     $mode = REG_BITS_ON if $mode == MCP23017_INPUT;
@@ -84,11 +93,31 @@ sub write_bank {
     my ($self, $bank, $state) = @_;
 
     _check_bank($bank);
+    _check_write($state);
 
     my $reg = $bank == BANK_A ? MCP23017_GPIOA : MCP23017_GPIOB;
     $state = REG_BITS_ON if $state == HIGH;
 
     setRegister($self->_fd, $reg, $state, "write_bank()");
+
+    return getRegister($self->_fd, $reg);
+}
+sub pullup_bank {
+    my ($self, $bank, $state) = @_;
+
+    _check_bank($bank);
+
+    my $reg = $bank == BANK_A ? MCP23017_GPPUA : MCP23017_GPPUB;
+
+    if (! defined $state){
+        return getRegister($self->_fd, $reg);
+    }
+
+    _check_pullup($state);
+
+    $state = REG_BITS_ON if $state == HIGH;
+
+    setRegister($self->_fd, $reg, $state, "write_pullup()");
 
     return getRegister($self->_fd, $reg);
 }
@@ -122,6 +151,24 @@ sub _check_mode {
     my ($mode) = @_;
     if ($mode != MCP23017_INPUT && $mode != MCP23017_OUTPUT){
         croak "mode param must be either 0 or 1, not '$mode'\n";
+    }
+}
+sub _check_pullup {
+    my ($state) = @_;
+
+    if ($state != HIGH && $state != LOW){
+        croak "state param must be either 0 or 1, not '$state'\n";
+    }
+}
+sub _check_write {
+    my ($state) = @_;
+
+    if (! defined $state){
+        croak "write() requires the state to be sent in\n";
+    }
+
+    if ($state != HIGH && $state != LOW){
+        croak "state param must be either 0 or 1, not '$state'\n";
     }
 }
 sub _fd {

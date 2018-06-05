@@ -2,6 +2,7 @@ use warnings;
 use strict;
 use feature 'say';
 
+use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
@@ -26,6 +27,11 @@ for my $reg (0x00..0x09, 0x0C..0x0D, 0x14..0x15){
         is $o->register_bit($reg, $bit), 1, "bit '$bit' in reg '$reg' is on ok";
     }
 }
+
+# reset the interrupt capture registers
+
+$o->register(MCP23017_INTCAPA);
+$o->register(MCP23017_INTCAPB);
 
 done_testing();
 

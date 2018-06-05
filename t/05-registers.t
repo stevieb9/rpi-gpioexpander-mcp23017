@@ -2,6 +2,7 @@ use warnings;
 use strict;
 use feature 'say';
 
+use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
@@ -17,6 +18,11 @@ for my $reg (0x00..0x09, 0x0C..0x0D, 0x14..0x15){
         is $ret, $data, "register $reg set to $data ok";
     }
 }
+
+# reset the interrupt capture registers
+
+$o->register(MCP23017_INTCAPA);
+$o->register(MCP23017_INTCAPB);
 
 { # non writable: 0x0A-0x0B, 0x0E-0x11
 

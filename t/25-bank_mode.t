@@ -88,4 +88,15 @@ my $o = $mod->new(0x20);
     $o->cleanup;
 }
 
+{ # bad params
+
+    is eval { $o->mode_bank(5); 1; }, undef, "fails on invalid bank";
+    is eval { $o->mode_bank(BANK_A, 5); 1; }, undef, "fails on invalid state";
+
+}
+{ # return if no state sent
+
+    is $o->mode_bank(BANK_A), 0xFF, "returns bank register if no state sent";
+}
+
 done_testing();

@@ -50,5 +50,11 @@ for my $reg (MCP23017_IODIRA .. MCP23017_IODIRB){
     }
 }
 
+{ # bad params
+
+    is eval { $o->write(5); 1; }, undef, "fails on no state param";
+    is eval { $o->write(5, 5); 1; }, undef, "fails on invalid state";
+}
+
 done_testing();
 

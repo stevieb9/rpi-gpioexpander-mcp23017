@@ -111,5 +111,12 @@ $o->cleanup;
     $o->cleanup;
 }
 
+{ # bad params
+
+    is eval { $o->write_bank(5); 1; }, undef, "fails on invalid bank";
+    is eval { $o->write_bank(BANK_B); 1; }, undef, "fails on missing state";
+    is eval { $o->write_bank(BANK_A, 5); 1; }, undef, "fails on invalid state";
+
+}
 
 done_testing();
