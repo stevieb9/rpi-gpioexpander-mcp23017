@@ -122,6 +122,19 @@ sub pullup_bank {
     return getRegister($self->_fd, $reg);
 }
 
+# both bank (all) methods
+
+sub mode_all {
+    my ($self, $mode) = @_;
+
+    _check_mode($mode);
+    $mode = REG_BITS_ON if $mode == MCP23017_INPUT;
+
+    for my $reg (MCP23017_IODIRA .. MCP23017_IODIRB) {
+        setRegister($self->_fd, $reg, $mode, "mode_all()");
+    }
+}
+
 # register methods
 
 sub register {

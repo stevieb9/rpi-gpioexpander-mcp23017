@@ -35,6 +35,7 @@ void _establishI2C (int fd);
 // register functions
 
 void _checkRegisterReadOnly (uint8_t reg);
+int _skipRegisterReadOnly (uint8_t reg);
 int GPIO_getRegister (int fd, int reg);
 int GPIO_getRegisterBit (int fd, int reg, int bit);
 int GPIO_getRegisterBits (int fd, int reg, int msb, int lsb);
