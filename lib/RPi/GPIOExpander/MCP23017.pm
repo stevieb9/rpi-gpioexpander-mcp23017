@@ -144,6 +144,16 @@ sub write_all {
         setRegister($self->_fd, $reg, $state, "write_all()");
     }
 }
+sub pullup_all {
+    my ($self, $state) = @_;
+
+    _check_pullup($state);
+    $state = REG_BITS_ON if $state == MCP23017_INPUT;
+
+    for my $reg (MCP23017_GPPUA .. MCP23017_GPPUB) {
+        setRegister($self->_fd, $reg, $state, "mode_all()");
+    }
+}
 
 # register methods
 
