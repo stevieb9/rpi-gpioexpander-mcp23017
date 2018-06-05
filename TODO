@@ -1,6 +1,5 @@
-- write methods to set "both" registers, not just "bank"
 
+- interrupt defval
 - interrupts
 - polarity
 
-- DONE: add current status for pullup, mode etc
