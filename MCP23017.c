@@ -24,21 +24,6 @@
 #include "mcp23017.h"
 #include "bit.h"
 
-void GPIO_pullUp (int fd, int pin, int state){
-    int reg = pin < 8 ? MCP23017_GPPUA : MCP23017_GPPUB;
-    int bit = GPIO__pinBit(pin);
-    int value;
-
-    if (state == HIGH){
-        value = bitOn(GPIO_getRegister(fd, reg), bit);
-    }
-    else {
-        value = bitOff(GPIO_getRegister(fd, reg), bit);
-    }
-
-    GPIO_setRegister(fd, reg, value, "pullUp()");
-}
-
 /* setup functions */
 
 int GPIO_getFd (int expanderAddr){
@@ -201,6 +186,21 @@ void GPIO_pinMode (int fd, int pin, int mode){
     }
 
     GPIO_setRegister(fd, reg, value, "pinMode()");
+}
+
+void GPIO_pullUp (int fd, int pin, int state){
+    int reg = pin < 8 ? MCP23017_GPPUA : MCP23017_GPPUB;
+    int bit = GPIO__pinBit(pin);
+    int value;
+
+    if (state == HIGH){
+        value = bitOn(GPIO_getRegister(fd, reg), bit);
+    }
+    else {
+        value = bitOff(GPIO_getRegister(fd, reg), bit);
+    }
+
+    GPIO_setRegister(fd, reg, value, "pullUp()");
 }
 
 /* operational functions */

@@ -134,6 +134,16 @@ sub mode_all {
         setRegister($self->_fd, $reg, $mode, "mode_all()");
     }
 }
+sub write_all {
+    my ($self, $state) = @_;
+
+    _check_write($state);
+    $state = REG_BITS_ON if $state == HIGH;
+
+    for my $reg (MCP23017_GPIOA .. MCP23017_GPIOB) {
+        setRegister($self->_fd, $reg, $state, "write_all()");
+    }
+}
 
 # register methods
 
