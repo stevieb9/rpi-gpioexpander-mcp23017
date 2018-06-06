@@ -215,12 +215,145 @@ __END__
 
 =head1 NAME
 
-RPi::GPIOExpander::MCP23017 - The great new RPi::GPIOExpander::MCP23017!
+RPi::GPIOExpander::MCP23017 - Interface to the MCP23017 GPIO Expander Integrated
+Circuit over I2C
 
+=head1 DESCRIPTION
+
+This distribution allows you to interface with an MCP23017 (i2c based
+communication) GPIO expander chip. It provides 16 GPIO digital pins.
+
+There are two "banks" of pins, bank C<0> (A) and bank C<1> (B). Each bank
+contains eight pins.
+
+Pins can be accessed/modified individually, by bank, or all at once.
+
+In this initial distribution, not all of the chip's functionality is included,
+but the core functionality is. In upcoming releases, we'll add the remaining
+functionality, particularly interrupts.
 
 =head1 SYNOPSIS
 
+    use RPi::GPIOExpander::MCP23017;
 
+    my $mcp23017_i2c_addr = 0x20;
+
+    my $exp = RPi::GPIOExpander::MCP23017->new($mcp_i2c_addr);
+
+    # pins are INPUT by default. Turn the first pin to OUTPUT
+
+    $exp->mode(0, 0); # or MCP23017_OUTPUT if using RPi::Const
+
+    # turn the pin on (HIGH)
+
+    $exp->write(0, 1); # or HIGH
+
+    # read the pin's status (HIGH or LOW)
+
+    $exp->read(6);
+
+    # turn the first bank (0) of pins (0-7) to OUTPUT, and make them live (HIGH)
+
+    $exp->mode_bank(0, 0);  # bank A, OUTPUT
+    $exp->write_bank(0, 1); # bank A, HIGH
+
+    # enable internal pullup resistors on the entire bank A (0)
+
+    $exp->pullup_bank(0, 1); # bank A, pullup enabled
+
+    # put all 16 pins as OUTPUT, and put them on (HIGH)
+
+    $exp->mode_all(0);  # or OUTPUT
+    $exp->write_all(1); # or HIGH
+
+    # cleanup all pins and reset them to default before exiting your program
+
+    $exp->cleanup;
+
+=head1 PIN METHODS
+
+The pins on the expander are arranged in two banks. Bank C<A> (ie. C<0> in code)
+are pins C<0> through C<7>. Bank C<B> (ie. C<1> in code) contains pins C<8>
+through C<15>.
+
+The first argument to these individual pin methods is the pin number (C<0-15>),
+the second is the argument to instruct what you want the pin to do.
+
+=head2 read($pin)
+
+Fetches the current state of the pin, on or off (HIGH or LOW).
+
+Parameters:
+
+    $pin
+
+Mandatory, Integer: The pin number, C<0-15>.
+
+Return: Bool. C<1> for on (HIGH), C<0> for off (LOW).
+
+=head2 mode($pin, [$mode])
+
+Allows toggling of a pin between input and output mode.
+
+Parameters:
+
+    $pin
+
+Mandatory, Integer: The pin number, C<0-15>.
+
+    $mode
+
+Optional, Bool: C<0> for output, C<1> for input. If using L<RPi::Const>, these
+equate to C<MCP23017_OUTPUT> and C<MCP23017_INPUT). Default startup of the IC is
+input.
+
+Return: Bool. C<1> for input (MCP23017_INPUT), C<0> for output
+(MCP23017_OUTPUT).
+
+=head2 write($pin, $state)
+
+Turns an output pin on (HIGH) or off (LOW). Will only have effect if the pin is
+in output mode.
+
+Parameters:
+
+    $pin
+
+Mandatory, Integer: The pin number, C<0-15>.
+
+    $state
+
+Mandatory, Bool: C<0> for off (LOW), C<1> for on (HIGH).
+
+Return: None (void function).
+
+=head2 pullup($pin, [$state])
+
+The MCP23017 only has pull-up resistors (ie. there's no pull-downs). This method
+allows you to toggle the state of the pullup resistor.
+
+Parameters:
+
+    $pin
+
+Mandatory, Integer: The pin number, C<0-15>.
+
+    $state
+
+Optional, Bool: C<0> for off (LOW), C<1> for on (HIGH).
+
+Return: Bool. C<1> if the pullup is enabled, and C<0> if not.
+
+=head1 BANK METHODS
+
+The following methods deal with pin "banks". There are two banks of pins on the
+device, bank C<A> (represented as C<0> here), and bank C<B> (represented as
+C<1>)
+
+These methods will act on an entire bank of pins. Bank 0 (A) consists of pins
+C<0-7> whereas bank 1 (B) encompasses pins C<8-15>.
+
+=head2
 =head1 AUTHOR
 
 Steve Bertrand, C<< <steveb at cpan.org> >>
@@ -235,37 +368,3 @@ copy of the full license at:
 
 L<http://www.perlfoundation.org/artistic_license_2_0>
 
-Any use, modification, and distribution of the Standard or Modified
-Versions is governed by this Artistic License. By using, modifying or
-distributing the Package, you accept this license. Do not use, modify,
-or distribute the Package, if you do not accept this license.
-
-If your Modified Version has been derived from a Modified Version made
-by someone other than you, you are nevertheless required to ensure that
-your Modified Version complies with the requirements of this license.
-
-This license does not grant you the right to use any trademark, service
-mark, tradename, or logo of the Copyright Holder.
-
-This license includes the non-exclusive, worldwide, free-of-charge
-patent license to make, have made, use, offer to sell, sell, import and
-otherwise transfer the Package with respect to any patent claims
-licensable by the Copyright Holder that are necessarily infringed by the
-Package. If you institute patent litigation (including a cross-claim or
-counterclaim) against any party alleging that the Package constitutes
-direct or contributory patent infringement, then this Artistic License
-to you shall terminate on the date that such litigation is filed.
-
-Disclaimer of Warranty: THE PACKAGE IS PROVIDED BY THE COPYRIGHT HOLDER
-AND CONTRIBUTORS "AS IS' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES.
-THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, OR NON-INFRINGEMENT ARE DISCLAIMED TO THE EXTENT PERMITTED BY
-YOUR LOCAL LAW. UNLESS REQUIRED BY LAW, NO COPYRIGHT HOLDER OR
-CONTRIBUTOR WILL BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING IN ANY WAY OUT OF THE USE OF THE PACKAGE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-=cut
-
-1; # End of RPi::GPIOExpander::MCP23017
