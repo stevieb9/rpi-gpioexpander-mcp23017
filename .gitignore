@@ -1,4 +1,5 @@
 MCP23017.c
+CMakeLists.txt
 *.bs
 *.o
 Makefile

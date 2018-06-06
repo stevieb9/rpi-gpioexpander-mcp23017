@@ -1,6 +1,6 @@
 ^images/
 .bs$
-DS3231.c$
+MCP23017.c$
 CMakeLists.txt$
 .sh$
 \.o$
