@@ -6,6 +6,10 @@ use RPi::Const qw(:all);
 use RPi::GPIOExpander::MCP23017;
 use Test::More;
 
+if (! $ENV{RPI_MCP23017}){
+    plan(skip_all => "Skipping: RPI_MCP23017 environment variable not set");
+}
+
 my $mod = 'RPi::GPIOExpander::MCP23017';
 
 use constant {
