@@ -1,5 +1,8 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
+1.00 UNREL
+        -
+
 0.01    2018-06-07
         - initial public release
         - most core registers available
