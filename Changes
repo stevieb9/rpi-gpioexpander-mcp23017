@@ -1,6 +1,6 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
-0.01 UNREL
+0.01    2018-06-07
         - initial public release
         - most core registers available
         - ability to change a single pin, a pin bank, or all pins at once

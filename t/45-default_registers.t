@@ -14,6 +14,10 @@ my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
 
+$o->cleanup;
+
+sleep 10;
+
 for (0x00..0x15){
     if ($_ == MCP23017_IODIRA || $_ == MCP23017_IODIRB){
         is $o->register($_), 0xFF, "register $_ back to 0xFF ok";

@@ -10,6 +10,7 @@ MCP23017.xs
 prototype/bit.c
 prototype/bit.h
 prototype/initial.c
+prototype/mcp23017.t
 prototype/prototype
 prototype/test.pl
 README
@@ -22,7 +23,7 @@ t/25-bank_mode.t
 t/30-bank_write.t
 t/35-pullup.t
 t/40-pullup_bank.t
-t/45-default_registers.pl
+t/45-default_registers.t
 t/50-mode_all.t
 t/55-write_all.t
 t/60-pullup_all.t

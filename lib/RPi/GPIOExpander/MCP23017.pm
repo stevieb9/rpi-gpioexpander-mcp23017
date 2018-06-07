@@ -270,6 +270,22 @@ functionality, particularly interrupts.
 
     $exp->cleanup;
 
+=head1 OPERATIONAL METHODS
+
+=head2 new($addr)
+
+Instantiates and returns a new L<RPi::GPIOExpander::MCP23017> object.
+
+Parameters:
+
+    $addr
+
+Optional, Integer: The I2C address of the device. Defaults to C<0x20>.
+
+=head2 cleanup
+
+Resets the device registers back to their original startup configuration.
+
 =head1 PIN METHODS
 
 The pins on the expander are arranged in two banks. Bank C<A> (ie. C<0> in code)
@@ -304,7 +320,7 @@ Mandatory, Integer: The pin number, C<0-15>.
     $mode
 
 Optional, Bool: C<0> for output, C<1> for input. If using L<RPi::Const>, these
-equate to C<MCP23017_OUTPUT> and C<MCP23017_INPUT). Default startup of the IC is
+equate to C<MCP23017_OUTPUT> and C<MCP23017_INPUT>. Default startup of the IC is
 input.
 
 Return: Bool. C<1> for input (MCP23017_INPUT), C<0> for output
@@ -353,7 +369,140 @@ C<1>)
 These methods will act on an entire bank of pins. Bank 0 (A) consists of pins
 C<0-7> whereas bank 1 (B) encompasses pins C<8-15>.
 
-=head2
+=head2 mode_bank($bank, [$mode])
+
+This method will set the mode for the eight pins associated with the specified
+bank in one fell swoop.
+
+Parameters:
+
+    $bank
+
+Mandatory, Integer: C<0> for bank A (pins 0-7) or C<1> for bank B (pins 8-15).
+
+    $mode
+
+Optional, Integer: C<0> (or C<MCP23017_OUTPUT>) for output mode, or C<1> (or
+C<MCP23017_INPUT> for input mode. The default mode on device startup is input
+for all pins.
+
+Return: Ingeter. A byte containing the state of the entire bank's mode register.
+
+=head2 write_bank($bank, $state)
+
+This method will write the operational state (on/off aka high/low) for an entire
+bank of pins. Has no effect for pins that are currently in INPUT mode.
+
+Parameters:
+
+    $bank
+
+Mandatory, Integer: C<0> for bank A (pins 0-7) or C<1> for bank B (pins 8-15).
+
+    $state
+
+Mandatory, Bool: C<0> (or C<LOW>) for off, or C<1> (or C<HIGH>) for on.
+
+=head2 pullup_bank($bank, [$state])
+
+Allows you to enable or disable the built-in pull-up resistors for an entire
+bank of pins all at the same time.
+
+Parameters:
+
+    $bank
+
+Mandatory, Integer: C<0> for bank A (pins 0-7) or C<1> for bank B (pins 8-15).
+
+    $state
+
+Mandatory, Bool: C<0> (or C<LOW>) to disable the pullups, or C<1> (or C<HIGH>)
+to enable them.
+
+Return: Ingeter. A byte containing the state of the entire bank's pullup
+register.
+
+=head1 ALL PIN METHODS
+
+The following methods allows you to act on all pins across both banks in one
+fell swoop.
+
+=head2 mode_all($mode)
+
+This method allows you to set the mode (input or output) on all 16 pins at the
+same time.
+
+Parameters:
+
+    $mode
+
+Mandatory, Integer: C<0> (or C<MCP23017_OUTPUT>) for output mode, or C<1> (or
+C<MCP23017_INPUT> for input mode. The default mode on device startup is input
+for all pins.
+
+=head2 write_all($state)
+
+This method will write the operational state (on/off aka high/low) for all 16
+pins at the same time. Has no effect for pins that are currently in INPUT mode.
+
+Parameters:
+
+    $state
+
+Mandatory, Bool: C<0> (or C<LOW>) for off, or C<1> (or C<HIGH>) for on.
+
+=head2 pullup_all($state)
+
+Allows you to enable or disable the built-in pull-up resistors for all 16 pins
+at the same time.
+
+Parameters:
+
+    $state
+
+Mandatory, Bool: C<0> (or C<LOW>) to disable the pullups, or C<1> (or C<HIGH>)
+to enable them.
+
+=head1 REGISTER ACCESS METHODS
+
+These methods provide you direct access to the device registers themselves. They
+are here for convenience only, and really shouldn't be used unless you are
+familiar with the registers and how they operate.
+
+=head2 register($register, [$data]);
+
+Gets and or sets the specified register.
+
+Parameters:
+
+    $register
+
+Mandatory, Integer: The register to read and or write.
+
+    $data
+
+Optional, Integer: A single byte to enable/disable bits in the specified
+register.
+
+Return: Integer, the value of the register specified.
+
+=head2 register_bit($register, $bit)
+
+Allows you to read a single bit from within the specified register.
+
+Parameters:
+
+    $register
+
+Mandatory, Integer: The register to read the bit from.
+
+    $bit
+
+Mandatory, Integer: The bit to read from the given register. Valid values are
+C<0> through C<7>.
+
+Return: Bool, C<0> if the bit is not set, and C<1> if it is.
+
 =head1 AUTHOR
 
 Steve Bertrand, C<< <steveb at cpan.org> >>
