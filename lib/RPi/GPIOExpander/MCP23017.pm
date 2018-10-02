@@ -238,7 +238,7 @@ functionality, particularly interrupts.
 
     my $mcp23017_i2c_addr = 0x20;
 
-    my $exp = RPi::GPIOExpander::MCP23017->new($mcp_i2c_addr);
+    my $exp = RPi::GPIOExpander::MCP23017->new($mcp23017_i2c_addr);
 
     # pins are INPUT by default. Turn the first pin to OUTPUT
 
