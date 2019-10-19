@@ -10,6 +10,10 @@ if (! $ENV{RPI_MCP23017}){
     plan(skip_all => "Skipping: RPI_MCP23017 environment variable not set");
 }
 
+if (! $ENV{RPI_SUBMODULE_TESTING}){
+    plan(skip_all => "RPI_SUBMODULE_TESTING environment variable not set");
+}
+
 my $mod = 'RPi::GPIOExpander::MCP23017';
 
 my $o = $mod->new(0x20);
