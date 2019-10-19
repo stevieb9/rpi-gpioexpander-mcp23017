@@ -1,5 +1,8 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
+1.02 UNREL
+        -
+
 1.01    2019-10-19
         - correct typo in variable assignment in POD's SYNOPSIS (closes #2)
         - added extra check in all test files to ensure that an extra env var
