@@ -1,7 +1,10 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
-1.02 UNREL
-        -
+1.02    2019-10-23
+        - merged PR from Mohammad S. Anwar that added a missed file in
+          MANIFEST
+        - moved test run variables to BEGIN block
+        - updated pod-coverage testing
 
 1.01    2019-10-19
         - correct typo in variable assignment in POD's SYNOPSIS (closes #2)
