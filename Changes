@@ -1,5 +1,8 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
+1.03 UNREL
+        -
+
 1.02    2019-10-23
         - merged PR from Mohammad S. Anwar that added a missed file in
           MANIFEST
