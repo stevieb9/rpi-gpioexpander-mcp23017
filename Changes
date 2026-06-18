@@ -1,7 +1,9 @@
 Revision history for RPi-GPIOExpander-MCP23017
 
 1.04 UNREL
-    -
+    - Documented the A2/A1/A0 hardware address pin to I2C address mapping
+      (0x20-0x27) in the new() POD, including a note that the pins must be
+      hard-wired and cannot be left floating
 
 1.03    2026-06-12
         - Makefile.PL's i2c presence check can now be bypassed with

@@ -282,6 +282,26 @@ Parameters:
 
 Optional, Integer: The I2C address of the device. Defaults to C<0x20>.
 
+The MCP23017's 7-bit I2C address has a fixed C<0100> prefix followed by the
+state of the three hardware address pins (C<A2>, C<A1>, C<A0>). Tie each pin to
+C<GND> for C<0> or C<VDD> for C<1>. This yields eight selectable addresses
+(C<0x20> through C<0x27>), allowing up to eight devices on a single bus:
+
+    A2  A1  A0   Address
+    --  --  --   -------
+     0   0   0   0x20  (default; all pins to GND)
+     0   0   1   0x21
+     0   1   0   0x22
+     0   1   1   0x23
+     1   0   0   0x24
+     1   0   1   0x25
+     1   1   0   0x26
+     1   1   1   0x27
+
+Each address pin must be hard-wired directly to C<GND> or C<VDD>. Leaving any of
+them floating will B<not> work; the device will fail to respond at a predictable
+address.
+
 =head2 cleanup
 
 Resets the device registers back to their original startup configuration.
