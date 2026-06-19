@@ -5,6 +5,9 @@ Revision history for RPi-GPIOExpander-MCP23017
       (0x20-0x27) in the new() POD, including a note that the pins must be
       hard-wired and cannot be left floating
     - Added copy of datasheed in docs/
+    - Fixed writePin() to read-modify-write the OLAT register instead of
+      GPIO; reading GPIO sampled live pin levels, so a floating input pin
+      on the same bank could be latched back as an output value
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with

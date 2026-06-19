@@ -20,6 +20,9 @@
 #define MCP23017_GPIOA      0x12
 #define MCP23017_GPIOB      0x13
 
+#define MCP23017_OLATA      0x14
+#define MCP23017_OLATB      0x15
+
 #define MCP23017_OUTPUT     0x00
 #define MCP23017_INPUT      0x01
 
