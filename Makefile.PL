@@ -44,7 +44,7 @@ WriteMakefile(
         'Test::More' => '0',
     },
     PREREQ_PM => {
-        'RPi::Const'    => 1.05,
+        'RPi::Const'    => 1.06,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'RPi-GPIOExpander-MCP23017-*' },

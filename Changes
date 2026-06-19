@@ -13,6 +13,7 @@ Revision history for RPi-GPIOExpander-MCP23017
       pin numbers A0-A7/B0-B7 now live in RPi::Const (:mcp23017_pins)
     - Documented in the PIN METHODS POD that A7 (pin 7) and B7 (pin 15) are
       output-only and not reliable as inputs
+    - Bump prereq of RPi::Const to 1.06
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with
