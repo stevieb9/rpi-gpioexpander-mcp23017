@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Carp qw(croak);
+use Exporter qw(import);
 use RPi::Const qw(:all);
 
 our $VERSION = '1.04';
@@ -17,6 +18,18 @@ use constant {
     REG_BITS_ON     => 0xFF,
     REG_BITS_OFF    => 0x00,
 };
+
+# This module exports only its own bank selectors. The MCP23017 register/mode
+# constants (MCP23017_*) and named pin numbers (A0-A7, B0-B7) live in
+# RPi::Const; import them from there directly.
+my @bank_const = qw(BANK_A BANK_B);
+
+our @EXPORT_OK = (@bank_const);
+
+our %EXPORT_TAGS = (
+    banks => [@bank_const],
+    all   => [@bank_const],
+);
 
 # operational methods
 
@@ -314,6 +327,33 @@ through C<15>.
 
 The first argument to these individual pin methods is the pin number (C<0-15>),
 the second is the argument to instruct what you want the pin to do.
+
+B<Note>: On the MCP23017, C<A7> (pin C<7>) and C<B7> (pin C<15>) are
+B<output-only>. They can be driven with C<write()>, but they do not function
+reliably as inputs, so C<read()> on either of them should not be trusted. This
+is a hardware limitation of the device, not of this module.
+
+Instead of the raw C<0-15> pin numbers, you can use the named pin constants from
+L<RPi::Const>. C<A0> through C<A7> map to the bank A pins (C<0-7>), and C<B0>
+through C<B7> map to the bank B pins (C<8-15>):
+
+    use RPi::Const qw(:mcp23017_pins);
+
+    $exp->mode(A4, MCP23017_OUTPUT);    # same as $exp->mode(4, ...)
+    $exp->write(A4, HIGH);
+    $exp->read(B3);                     # same as $exp->read(11)
+
+This module itself exports only its own bank selectors, C<BANK_A> (C<0>) and
+C<BANK_B> (C<1>), via the C<:banks> or C<:all> tag. Nothing is exported by
+default.
+
+    use RPi::GPIOExpander::MCP23017 qw(:banks);
+    $exp->mode_bank(BANK_A, MCP23017_OUTPUT);
+
+The named pin numbers (C<A0-A7>, C<B0-B7>) and the C<MCP23017_*> register and
+mode constants both live in L<RPi::Const>; import them from there:
+
+    use RPi::Const qw(:mcp23017_pins :mcp23017_registers);
 
 =head2 read($pin)
 

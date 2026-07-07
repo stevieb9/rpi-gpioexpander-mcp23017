@@ -162,7 +162,11 @@ bool GPIO_readPin (int fd, int pin){
 }
 
 void GPIO_writePin (int fd, int pin, bool state){
-    int reg = pin < 8 ? reg = MCP23017_GPIOA : MCP23017_GPIOB;
+    // Read-modify-write the output latch (OLAT), not GPIO. Reading GPIO
+    // returns the live levels of every pin on the bank, so any floating
+    // input pin would be latched back as an output value. OLAT holds only
+    // the intended output state, which is what we want to preserve here.
+    int reg = pin < 8 ? MCP23017_OLATA : MCP23017_OLATB;
     int bit = GPIO__pinBit(pin);
     int value;
 

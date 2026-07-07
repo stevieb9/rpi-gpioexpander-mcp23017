@@ -4,6 +4,7 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Documented the A2/A1/A0 hardware address pin to I2C address mapping
       (0x20-0x27) in the new() POD, including a note that the pins must be
       hard-wired and cannot be left floating
+<<<<<<< HEAD
     - Added copy of datasheet in docs/
     - Added TECHNICAL INFORMATION POD (DEVICE SPECIFICS, REGISTER MAP, ON THE
       WIRE, DATASHEET): chip capabilities, wiring, the full BANK=0 register
@@ -17,6 +18,15 @@ Revision history for RPi-GPIOExpander-MCP23017
       set its functional bits (MIRROR, SEQOP, DISSLW, HAEN, ODR, INTPOL); a
       write that would set the BANK bit (bit 7) croaks, since BANK=1 re-maps
       the register layout the module assumes. INTF/INTCAP stay read-only
+    - Fixed writePin() to read-modify-write the OLAT register instead of
+      GPIO; reading GPIO sampled live pin levels, so a floating input pin
+      on the same bank could be latched back as an output value
+    - Added an exportable :banks tag (and :all) for the BANK_A/BANK_B bank
+      selectors; these are the only constants this module exports. The named
+      pin numbers A0-A7/B0-B7 now live in RPi::Const (:mcp23017_pins)
+    - Documented in the PIN METHODS POD that A7 (pin 7) and B7 (pin 15) are
+      output-only and not reliable as inputs
+    - Bump prereq of RPi::Const to 1.06
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with
