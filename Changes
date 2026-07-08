@@ -4,7 +4,20 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Documented the A2/A1/A0 hardware address pin to I2C address mapping
       (0x20-0x27) in the new() POD, including a note that the pins must be
       hard-wired and cannot be left floating
-    - Added copy of datasheed in docs/
+<<<<<<< HEAD
+    - Added copy of datasheet in docs/
+    - Added TECHNICAL INFORMATION POD (DEVICE SPECIFICS, REGISTER MAP, ON THE
+      WIRE, DATASHEET): chip capabilities, wiring, the full BANK=0 register
+      table cross-referenced to RPi::Const's :mcp23017_registers, the exact
+      I2C frames the XS produces, and why register() keeps IOCON locked;
+      verified against DS20001952C
+    - Bundled datasheet is now referenced locally in the DATASHEET POD via
+      docs/MCP23017-Data-Sheet-DS20001952.pdf (was a web URL) and added to
+      MANIFEST; corrected the cited revision to the shipped DS20001952D
+    - IOCON (0x0A/0x0B) is no longer treated as read-only: register() can now
+      set its functional bits (MIRROR, SEQOP, DISSLW, HAEN, ODR, INTPOL); a
+      write that would set the BANK bit (bit 7) croaks, since BANK=1 re-maps
+      the register layout the module assumes. INTF/INTCAP stay read-only
     - Fixed writePin() to read-modify-write the OLAT register instead of
       GPIO; reading GPIO sampled live pin levels, so a floating input pin
       on the same bank could be latched back as an output value

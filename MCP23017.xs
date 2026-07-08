@@ -56,7 +56,7 @@ void _establishI2C (int fd){
 /* register operations */
 
 void _checkRegisterReadOnly (uint8_t reg){
-    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+    uint8_t readOnlyRegisters[] = {0x0E, 0x0F, 0x10, 0x11};
 
     for (int i=0; i < sizeof(readOnlyRegisters); i++){
         if (reg == readOnlyRegisters[i]){
@@ -67,7 +67,7 @@ void _checkRegisterReadOnly (uint8_t reg){
 }
 
 int _skipRegisterReadOnly (uint8_t reg){
-    uint8_t readOnlyRegisters[6] = {0x0A, 0X0B, 0x0E, 0x0F, 0x10, 0x11};
+    uint8_t readOnlyRegisters[] = {0x0E, 0x0F, 0x10, 0x11};
 
     for (int i=0; i < sizeof(readOnlyRegisters); i++){
         if (reg == readOnlyRegisters[i]){
@@ -75,6 +75,18 @@ int _skipRegisterReadOnly (uint8_t reg){
         }
     }
     return 0;
+}
+
+void _checkIoconBank (uint8_t reg, int value){
+    /* IOCON (mirrored at 0x0A and 0x0B) is R/W, but its BANK bit (bit 7)
+       re-maps every register address; this module assumes the BANK=0 layout,
+       so allow every other IOCON bit and refuse a write that sets BANK. */
+    if ((reg == 0x0A || reg == 0x0B) && (value & 0x80)){
+        croak(
+            "Refusing to set IOCON.BANK (bit 7): this module relies on the "
+            "BANK=0 register layout\n"
+        );
+    }
 }
 
 int GPIO_getRegister (int fd, int reg){
@@ -111,6 +123,7 @@ int GPIO_getRegisterBits (int fd, int reg, int msb, int lsb){
 
 int GPIO_setRegister(int fd, int reg, int value, char* name){
     _checkRegisterReadOnly(reg);
+    _checkIoconBank(reg, value);
 
     uint8_t buf[2] = {reg, value};
 

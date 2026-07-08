@@ -563,6 +563,125 @@ C<0> through C<7>.
 
 Return: Bool, C<0> if the bit is not set, and C<1> if it is.
 
+=head1 TECHNICAL INFORMATION
+
+=head2 DEVICE SPECIFICS
+
+    - 16 bidirectional GPIO pins in two 8-bit ports, GPA and GPB; this
+      module numbers them 0-7 (GPA) and 8-15 (GPB)
+    - Every pin powers up as an input (IODIR = 0xFF)
+    - Weak internal pull-ups, switchable per pin; no pull-downs
+    - Each pin sinks or sources 25mA max, 125mA total into VDD
+    - Interrupt-on-change with INTA/INTB outputs (not yet exposed by
+      this module - see DESCRIPTION)
+    - I2C at 100kHz, 400kHz and 1.7MHz; three address straps give
+      0x20-0x27, up to eight chips per bus (table in new($addr))
+    - Runs at 1.8-5.5V (4.5V minimum for the +125C grade); 1uA max
+      standby current
+    - The MCP23S17 is the same chip with an SPI interface instead
+
+Wiring to the Pi: VDD (pin 9) to 3.3V, VSS (pin 10) to ground, SDA
+(pin 13) to GPIO 2 (pin 3), SCK (pin 12) to GPIO 3 (pin 5), RESET
+(pin 18, active low) tied to 3.3V, and A0/A1/A2 (pins 15-17) hard-wired
+per the address table in L<new($addr)|/"new($addr)">. GPA0-GPA7 are
+device pins 21-28, GPB0-GPB7 are device pins 1-8.
+
+=head2 REGISTER MAP
+
+The chip's 22 registers, in the C<IOCON.BANK = 0> layout this module
+relies on:
+
+    0x00  IODIRA    Direction, port A (1 = input; powers up 0xFF)
+    0x01  IODIRB    Direction, port B
+    0x02  IPOLA     Input polarity inversion, A
+    0x03  IPOLB     Input polarity inversion, B
+    0x04  GPINTENA  Interrupt-on-change enable, A
+    0x05  GPINTENB  Interrupt-on-change enable, B
+    0x06  DEFVALA   Interrupt default-compare value, A
+    0x07  DEFVALB   Interrupt default-compare value, B
+    0x08  INTCONA   Interrupt-on-change control, A
+    0x09  INTCONB   Interrupt-on-change control, B
+    0x0A  IOCON     Shared configuration byte...
+    0x0B  IOCON     ...mapped at both addresses
+    0x0C  GPPUA     Weak pull-up enable, A
+    0x0D  GPPUB     Weak pull-up enable, B
+    0x0E  INTFA     Interrupt flags, A (read-only)
+    0x0F  INTFB     Interrupt flags, B (read-only)
+    0x10  INTCAPA   Port snapshot at interrupt time, A (read-only)
+    0x11  INTCAPB   Port snapshot at interrupt time, B (read-only)
+    0x12  GPIOA     The port itself, A - reads the pins; writes land
+    0x13  GPIOB     in the output latch
+    0x14  OLATA     Output latch, A
+    0x15  OLATB     Output latch, B
+
+Every register except the two IODIRs powers up as 0x00. L<RPi::Const>'s
+C<:mcp23017_registers> tag exports all of these as constants
+(C<MCP23017_IODIRA> through C<MCP23017_OLATB>) for use with
+L<register|/"register($register, [$data]);"> and
+L<register_bit|/"register_bit($register, $bit)">.
+
+Note that C<register()> still refuses to write INTF/INTCAP (which the
+hardware itself treats as read-only). IOCON B<is> now writable, so you can
+set its functional bits (MIRROR, SEQOP, DISSLW, HAEN, ODR, INTPOL) - with
+one guard: a write that sets the C<BANK> bit (bit 7) croaks, since C<BANK>
+= 1 would re-map every register address this module depends on (the table
+above is the C<BANK = 0> layout).
+
+=head2 ON THE WIRE
+
+The XS layer drives the kernel's C</dev/i2c-1> with plain C<write()> and
+C<read()> calls - each frame below is its own START-to-STOP transaction,
+no repeated STARTs. The chip's address pointer survives between frames,
+but because it auto-increments after every byte (C<IOCON.SEQOP> powers
+up in Sequential mode), every operation here re-sends the register
+number first:
+
+    S = START    P = STOP
+    A = ACK (receiver pulls SDA low)    N = NACK (master, "no more bytes")
+
+At the default strap address 0x20, the address byte on the wire is
+C<0x40> for writes and C<0x41> for reads. C<new()> probes the chip with
+a bare one-byte pointer write (croaking if nothing ACKs):
+
+    +---+------+---+------+---+---+
+    | S | 0x40 | A | 0x00 | A | P |
+    +---+------+---+------+---+---+
+         addr+W     IODIRA pointer
+
+A register read - C<getRegister()>, which backs L<read|/"read($pin)">,
+L<mode|/"mode($pin, [$mode])"> with no argument, and friends - is a
+pointer write, then a one-byte read:
+
+    +---+------+---+------+---+---+   +---+------+---+------+---+---+
+    | S | 0x40 | A | 0x12 | A | P |   | S | 0x41 | A | 0x00 | N | P |
+    +---+------+---+------+---+---+   +---+------+---+------+---+---+
+         addr+W     GPIOA                  addr+R     Chip drives
+
+A register write is one two-byte frame: the register number, then the
+new value. Every single-pin mutator is therefore a read-modify-write on
+the bus. C<< $exp->write(0, HIGH) >> reads GPIOA as above, sets bit 0,
+and writes it back:
+
+    +---+------+---+------+---+------+---+---+
+    | S | 0x40 | A | 0x12 | A | 0x01 | A | P |
+    +---+------+---+------+---+------+---+---+
+         addr+W     GPIOA      Bit 0 now high
+
+Bank methods (L<write_bank|/"write_bank($bank, $state)">,
+L<mode_bank|/"mode_bank($bank, [$mode])">,
+L<pullup_bank|/"pullup_bank($bank, [$state])">) skip the
+read and write their whole byte straight out - one two-byte frame per
+bank register, plus a read-back to return the result. L</cleanup> walks
+registers 0x00-0x15 with these same write frames, restoring the power-on
+values (IODIRs to 0xFF, the rest to 0x00, the read-only group skipped).
+
+=head2 DATASHEET
+
+The Microchip MCP23017/MCP23S17 datasheet (DS20001952D) is distributed
+with this software as F<docs/MCP23017-Data-Sheet-DS20001952.pdf>. It
+covers the register set, the I2C/SPI protocol, interrupts, and the
+electrical characteristics.
+
 =head1 AUTHOR
 
 Steve Bertrand, C<< <steveb at cpan.org> >>
