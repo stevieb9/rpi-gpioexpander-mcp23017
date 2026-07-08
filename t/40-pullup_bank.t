@@ -56,7 +56,7 @@ for my $reg (MCP23017_GPPUA .. MCP23017_GPPUB){
 }
 { # return if no state sent
 
-    is $o->mode_bank(BANK_A), 0xFF, "returns bank register if no state sent";
+    is $o->pullup_bank(BANK_A), 0x00, "returns the pullup bank register when no state sent";
 }
 
 done_testing();

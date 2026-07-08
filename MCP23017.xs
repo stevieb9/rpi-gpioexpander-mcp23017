@@ -131,7 +131,7 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
 
 int GPIO__pinBit (int pin){
     if (pin < 0 || pin > 15){
-        croak("pin '%d' is out of bounds. Pins 0-15 are available\n");
+        croak("pin '%d' is out of bounds. Pins 0-15 are available\n", pin);
     }
 
     // since we're dealing with a register per bank,

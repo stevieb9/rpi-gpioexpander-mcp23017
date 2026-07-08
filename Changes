@@ -14,6 +14,14 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Documented in the PIN METHODS POD that A7 (pin 7) and B7 (pin 15) are
       output-only and not reliable as inputs
     - Bump prereq of RPi::Const to 1.06
+    - Fixed the GPIO__pinBit() out-of-bounds croak: its "%d" format had no
+      argument, printing garbage instead of the offending pin number
+    - Fixed t/35-pullup.t and t/40-pullup_bank.t, whose bad-param/no-state
+      blocks tested mode_bank() instead of pullup()/pullup_bank(), leaving the
+      pullup validation paths effectively untested
+    - Added t/02-validation.t: ungated, HW-free coverage of _pinBit() (the
+      pin->bank-bit map + out-of-bounds croak) and the _check_bank/_check_mode/
+      _check_pullup/_check_write argument validators
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with

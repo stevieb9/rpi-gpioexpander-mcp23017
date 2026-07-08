@@ -84,13 +84,13 @@ for my $reg (MCP23017_GPPUA .. MCP23017_GPPUB){
 
 { # bad params
 
-    is eval { $o->mode_bank(5); 1; }, undef, "fails on invalid bank";
-    is eval { $o->mode_bank(BANK_A, 5); 1; }, undef, "fails on invalid state";
+    is eval { $o->pullup(0, 5); 1; }, undef, "fails on invalid pullup state";
+    is eval { $o->pullup(0, -1); 1; }, undef, "fails on negative pullup state";
 
 }
 { # return if no state sent
 
-    is $o->mode_bank(BANK_A), 0xFF, "returns bank register if no state sent";
+    is $o->pullup(0), LOW, "returns the pin's pullup state when no state sent";
 }
 
 done_testing();
