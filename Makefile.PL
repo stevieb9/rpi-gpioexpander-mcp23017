@@ -2,17 +2,21 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
-# RPI_DIST_RELEASE allows cutting release tarballs on non-Pi machines by
-# bypassing the i2c presence check below. Without it, missing i2c exits
-# before WriteMakefile so CPAN testers report NA, not FAIL
-
-if (! $ENV{RPI_DIST_RELEASE}){
-    if (! -f '/usr/include/linux/i2c.h' && ! -f '/usr/local/include/linux/i2c.h'){
-        print "i2c is not available and RPI_DIST_RELEASE is not set, " .
-              "exiting...\n";
-        exit;
-    }
-}
+# The I2C development-header presence check is the family-canonical check in
+# RPi::Const::BuildCheck (pulled in via CONFIGURE_REQUIRES below). It honours
+# RPI_DIST_RELEASE and exits 0 with a message before WriteMakefile when the
+# headers are missing, so CPAN testers report NA, not FAIL.
+eval {
+    require RPi::Const::BuildCheck;
+    RPi::Const::BuildCheck::i2c_build_check();
+    1;
+} or do {
+    # No RPi::Const::BuildCheck (a bare `perl Makefile.PL` with no CPAN client
+    # to honour CONFIGURE_REQUIRES). Stay NA-safe: exit 0 unless releasing.
+    print "RPi::Const (the build-check dependency) is not installed; install " .
+          "it first, or set RPI_DIST_RELEASE to skip the i2c check.\n";
+    exit 0 if ! $ENV{RPI_DIST_RELEASE};
+};
 
 WriteMakefile(
     NAME             => 'RPi::GPIOExpander::MCP23017',
@@ -39,12 +43,13 @@ WriteMakefile(
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '0',
+        'RPi::Const'          => '1.07',
     },
     BUILD_REQUIRES => {
         'Test::More' => '0',
     },
     PREREQ_PM => {
-        'RPi::Const'    => 1.06,
+        'RPi::Const' => '1.07',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'RPi-GPIOExpander-MCP23017-*' },

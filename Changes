@@ -4,7 +4,6 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Documented the A2/A1/A0 hardware address pin to I2C address mapping
       (0x20-0x27) in the new() POD, including a note that the pins must be
       hard-wired and cannot be left floating
-<<<<<<< HEAD
     - Added copy of datasheet in docs/
     - Added TECHNICAL INFORMATION POD (DEVICE SPECIFICS, REGISTER MAP, ON THE
       WIRE, DATASHEET): chip capabilities, wiring, the full BANK=0 register
@@ -35,6 +34,9 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Added t/02-validation.t: ungated, HW-free coverage of _pinBit() (the
       pin->bank-bit map + out-of-bounds croak) and the _check_bank/_check_mode/
       _check_pullup/_check_write argument validators
+    - Replaced the inline i2c-header presence check in Makefile.PL with the
+      family-canonical RPi::Const::BuildCheck::i2c_build_check() shim, pulled
+      in via CONFIGURE_REQUIRES; bumped the RPi::Const prereq to 1.07
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with
