@@ -17,6 +17,7 @@ prototype/test.pl
 README
 t/00-ok.t
 t/01-load.t
+t/02-validation.t
 t/05-registers.t
 t/10-register_bit.t
 t/15-mode.t
