@@ -37,6 +37,10 @@ Revision history for RPi-GPIOExpander-MCP23017
     - Replaced the inline i2c-header presence check in Makefile.PL with the
       family-canonical RPi::Const::BuildCheck::i2c_build_check() shim, pulled
       in via CONFIGURE_REQUIRES; bumped the RPi::Const prereq to 1.07
+    - Changed the three I2C-failure paths in the XS (getFd's ioctl,
+      _establishI2C's write, and the register write) from exit(-1) to croak():
+      a library must never terminate the caller's process, so an I2C fault now
+      throws a catchable Perl exception instead
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with

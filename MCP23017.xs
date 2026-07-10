@@ -29,12 +29,11 @@ int GPIO_getFd (int expanderAddr){
 
     if (ioctl(fd, I2C_SLAVE_FORCE, expanderAddr) < 0) {
         close(fd);
-        printf(
+        croak(
                 "Couldn't find device at addr %d: %s\n",
                 expanderAddr,
                 strerror(errno)
         );
-        exit(-1);
     }
 
     _establishI2C(fd);
@@ -48,8 +47,7 @@ void _establishI2C (int fd){
 
     if (write(fd, buf, 1) != 1){
         close(fd);
-        printf("Error: Received no ACK bit, couldn't establish connection!");
-        exit(-1);
+        croak("Error: Received no ACK bit, couldn't establish connection!\n");
     }
 }
 
@@ -129,12 +127,11 @@ int GPIO_setRegister(int fd, int reg, int value, char* name){
 
     if ((write(fd, buf, sizeof(buf))) != 2){
         close(fd);
-        printf(
+        croak(
                 "Could not write to the %s register: %s\n",
                 name,
                 strerror(errno)
         );
-        exit(-1);
     }
 
     return 0;
