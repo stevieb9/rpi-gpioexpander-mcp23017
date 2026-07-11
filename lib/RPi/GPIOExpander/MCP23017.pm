@@ -241,6 +241,19 @@ contains eight pins.
 
 Pins can be accessed/modified individually, by bank, or all at once.
 
+=head2 Sharing one expander between devices
+
+A single expander object can be handed to several devices at once (for example
+two stepper motors), as long as each device uses its own pins. The object is
+just a handle to the chip, and every pin operation reads the chip, changes only
+that pin's bit, and writes it back, so one device never disturbs another's pins.
+
+If you drive the shared devices concurrently (from separate processes or
+threads), keep each on its own bank - pins C<0-7> versus C<8-15> - or serialise
+the writes, so two simultaneous read-modify-write updates to the same bank
+register can't collide. Call C<cleanup> just once, after all the devices are
+done.
+
 In this initial distribution, not all of the chip's functionality is included,
 but the core functionality is. In upcoming releases, we'll add the remaining
 functionality, particularly interrupts.

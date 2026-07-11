@@ -41,6 +41,9 @@ Revision history for RPi-GPIOExpander-MCP23017
       _establishI2C's write, and the register write) from exit(-1) to croak():
       a library must never terminate the caller's process, so an I2C fault now
       throws a catchable Perl exception instead
+    - Documented that one expander object can be shared between multiple
+      devices as long as each uses its own pins, with a note on the
+      concurrency (bank/serialisation) caveat
 
 1.03    2026-06-12
     - Makefile.PL's i2c presence check can now be bypassed with
